@@ -1,1066 +1,762 @@
-Berikut adalah kode penuh yang telah direvisi sesuai dengan instruksi Anda. Perubahan dilakukan secara presisi pada bagian struktur tabel (`<thead>`) tanpa mengubah fungsionalitas JavaScript ataupun desain CSS bawaan aplikasi.
-
-* `P` $\rightarrow$ **Panjang**
-* `L` $\rightarrow$ **Lebar**
-* `Potongan` $\rightarrow$ **Jumlah Potongan** (disesuaikan agar tidak disingkat sama sekali)
-* `Luas (M²)` $\rightarrow$ **Persegi**
-* `Tanggal` $\rightarrow$ **Tanggal Scan**
-* `Aksi` $\rightarrow$ **Edit**
-
-```html
 <!doctype html>
 <html lang="id">
-  <head>
-    <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover"
-    />
-    <title>Enterprise SCM Scanner - PREMIUM</title>
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <title>Scanner - PT. Daya Sakti Niaga</title>
 
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
 
-    <script
-      type="text/javascript"
-      src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"
-    ></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <!-- html5-qrcode: paling kompatibel iOS + Android semua browser -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <style>
-      :root {
-        --primary: #0ea5e9;
-        --primary-dark: #0284c7;
-        --danger: #ef4444;
-        --success: #10b981;
-        --warning: #f59e0b;
-        --bg-main: #f0fdfa;
-        --card-bg: #ffffff;
-        --text-dark: #0f172a;
-        --text-muted: #64748b;
-        --border: #e2e8f0;
-      }
+  <style>
+    :root {
+      --primary:#8b5cf6; --primary-light:#a78bfa;
+      --secondary:#3b82f6; --accent:#ec4899;
+      --success:#10b981; --warning:#f59e0b; --danger:#ef4444;
+      --glass-bg:rgba(255,255,255,0.05);
+      --glass-border:rgba(255,255,255,0.15);
+      --glass-blur:blur(20px);
+      --text-primary:#ffffff;
+      --text-secondary:rgba(255,255,255,0.7);
+      --text-muted:rgba(255,255,255,0.4);
+      --radius-lg:24px; --radius-md:16px;
+    }
+    *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+    html{-webkit-text-size-adjust:100%;}
+    html,body{
+      width:100%;max-width:100vw;overflow-x:hidden;
+      overscroll-behavior-y:none;
+      background:
+        radial-gradient(circle at 15% 50%,#1e1b4b,transparent 50%),
+        radial-gradient(circle at 85% 30%,#312e81,transparent 50%),
+        radial-gradient(circle at 50% 80%,#0f172a,transparent 50%);
+      background-color:#020617;
+      background-attachment:fixed;
+      color:var(--text-primary);
+      font-family:"Plus Jakarta Sans",sans-serif;
+    }
+    body{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;}
+    button,a,input,select{touch-action:manipulation;}
 
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-        font-family: "Inter", sans-serif;
-        -webkit-tap-highlight-color: transparent;
-      }
+    /* TOPBAR */
+    .topbar{
+      background:rgba(2,6,23,0.6);
+      backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
+      border-bottom:1px solid var(--glass-border);
+      padding:16px 20px;
+      padding-top:max(16px,env(safe-area-inset-top));
+      display:flex;align-items:center;justify-content:space-between;
+      position:sticky;top:0;z-index:100;
+    }
+    .topbar-title{
+      font-size:1.15rem;font-family:"Space Grotesk",sans-serif;font-weight:700;
+      background:linear-gradient(135deg,var(--secondary),var(--accent));
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+      letter-spacing:0.5px;
+    }
+    .engine-badge{
+      font-size:0.65rem;
+      background:linear-gradient(135deg,rgba(16,185,129,0.2),rgba(16,185,129,0.05));
+      color:#34d399;padding:6px 12px;border-radius:20px;
+      font-weight:800;border:1px solid rgba(16,185,129,0.3);
+    }
 
-      html,
-      body {
-        width: 100%;
-        max-width: 100vw;
-        overflow-x: hidden;
-        -webkit-overflow-scrolling: touch;
-        background-color: var(--bg-main);
-        color: var(--text-dark);
-      }
+    /* BOTTOM NAV */
+    .bottom-nav{
+      position:fixed;bottom:0;left:0;width:100%;
+      background:rgba(15,23,42,0.85);
+      backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
+      border-top:1px solid var(--glass-border);
+      display:flex;justify-content:space-around;
+      padding:12px 10px calc(12px + env(safe-area-inset-bottom)) 10px;
+      z-index:999;box-shadow:0 -10px 30px rgba(0,0,0,0.5);
+    }
+    .nav-item{
+      display:flex;flex-direction:column;align-items:center;gap:6px;
+      color:var(--text-muted);text-decoration:none;cursor:pointer;
+      transition:all 0.3s ease;flex:1;
+    }
+    .nav-item i{font-size:1.3rem;transition:transform 0.2s ease;}
+    .nav-item span{font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;}
+    .nav-item.active{color:var(--primary-light);}
+    .nav-item.active i{transform:translateY(-3px) scale(1.1);color:var(--primary-light);filter:drop-shadow(0 0 8px rgba(167,139,250,0.6));}
 
-      body {
-        padding-top: env(safe-area-inset-top);
-        padding-bottom: env(safe-area-inset-bottom);
-      }
+    /* PAGES */
+    .view-page{display:none;opacity:0;animation:fadeIn 0.4s forwards;}
+    .view-page.active{display:flex;flex-direction:column;gap:24px;opacity:1;}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 
-      .navbar {
-        background: #0f172a;
-        color: #38bdf8;
-        padding: 18px 20px;
-        font-size: 1.25rem;
-        font-weight: 800;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-        position: sticky;
-        top: 0;
-        z-index: 100;
-        width: 100%;
-        letter-spacing: 1px;
-      }
+    .container{
+      padding:20px 16px;
+      padding-bottom:calc(100px + env(safe-area-inset-bottom));
+      max-width:800px;margin:0 auto;width:100%;flex:1;
+    }
 
-      .engine-badge {
-        position: absolute;
-        right: 20px;
-        font-size: 0.65rem;
-        background: var(--success);
-        color: white;
-        padding: 5px 10px;
-        border-radius: 20px;
-        letter-spacing: 0.5px;
-        font-weight: 700;
-      }
+    /* CARD */
+    .card{
+      background:var(--glass-bg);
+      backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
+      border-radius:var(--radius-lg);padding:24px;
+      box-shadow:0 8px 32px 0 rgba(0,0,0,0.3);border:1px solid var(--glass-border);
+    }
+    .card-header{
+      font-weight:700;margin-bottom:24px;font-size:1.15rem;
+      display:flex;align-items:center;gap:12px;color:var(--text-primary);
+    }
+    .card-header i{color:var(--primary-light);background:rgba(139,92,246,0.2);padding:8px;border-radius:8px;}
 
-      .container {
-        max-width: 1200px;
-        margin: 16px auto;
-        padding: 0 16px;
-        display: grid;
-        gap: 16px;
-        grid-template-columns: minmax(0, 1fr);
-        width: 100%;
-      }
+    /* ── SCANNER AREA ── */
+    .scanner-wrapper{position:relative;margin-bottom:28px;}
 
-      @media (min-width: 1024px) {
-        .container {
-          grid-template-columns: 420px minmax(0, 1fr);
-          align-items: start;
-        }
-      }
+    /* html5-qrcode render ke dalam div ini */
+    #qr-reader{
+      width:100% !important;
+      border-radius:var(--radius-md) !important;
+      overflow:hidden;
+      border:2px solid rgba(139,92,246,0.3) !important;
+      box-shadow:0 0 30px rgba(139,92,246,0.15);
+      background:#000;
+      aspect-ratio:1/1;
+      max-height:50vh;
+    }
 
-      .card {
-        background: var(--card-bg);
-        border-radius: 20px;
-        padding: 20px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
-        border: 1px solid rgba(226, 232, 240, 0.8);
-        min-width: 0;
-        max-width: 100%;
-      }
+    /* Override style bawaan html5-qrcode yang jelek */
+    #qr-reader video{
+      width:100% !important;
+      height:100% !important;
+      object-fit:cover !important;
+      border-radius:var(--radius-md) !important;
+    }
+    #qr-reader img{display:none !important;}
+    #qr-reader__scan_region{position:relative;}
+    #qr-reader__scan_region > img{display:none !important;}
+    #qr-reader__dashboard{display:none !important;}  /* sembunyikan UI bawaan */
 
-      .card-header {
-        font-weight: 800;
-        margin-bottom: 18px;
-        font-size: 1.15rem;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        color: var(--text-dark);
-      }
+    /* placeholder saat kamera off */
+    #scanPlaceholder{
+      width:100%;aspect-ratio:1/1;max-height:50vh;
+      background:#000;border-radius:var(--radius-md);
+      border:2px solid rgba(139,92,246,0.3);
+      display:flex;flex-direction:column;align-items:center;
+      justify-content:center;gap:16px;
+      color:var(--text-muted);font-size:1rem;font-weight:600;
+    }
+    #scanPlaceholder i{font-size:3.5rem;opacity:0.5;}
+    #scanPlaceholder.hidden{display:none;}
+    #qr-reader.hidden{display:none;}
 
-      /* Ultimate Scanner UI */
-      .scanner-container {
-        position: relative;
-        width: 100%;
-        border-radius: 16px;
-        overflow: hidden;
-        background: #020617;
-        margin-bottom: 18px;
-        aspect-ratio: 4/3;
-        max-height: 55vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.8);
-        transition: box-shadow 0.05s ease-out;
-      }
+    /* laser animasi */
+    .laser-wrap{
+      position:relative;pointer-events:none;
+      margin-top:-4px;
+    }
+    .laser{
+      position:absolute;left:15%;right:15%;height:3px;top:0;
+      background:linear-gradient(90deg,transparent,var(--secondary),transparent);
+      box-shadow:0 0 15px 3px rgba(59,130,246,0.6);
+      display:none;z-index:10;
+      animation:scanAnim 2s infinite ease-in-out;
+    }
+    .laser.active{display:block;}
+    @keyframes scanAnim{0%,100%{top:15%;opacity:0}10%,90%{opacity:1}50%{top:85%}}
 
-      #videoElement {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: none;
-        transform: scale(1.02);
-      }
+    /* success flash overlay */
+    #flashOverlay{
+      position:absolute;inset:0;border-radius:var(--radius-md);
+      pointer-events:none;z-index:20;opacity:0;
+      background:rgba(16,185,129,0.25);
+      transition:opacity 0.1s;
+    }
 
-      /* Area Penargetan Ultra-Wide & Bebas Arah */
-      .targeting-box {
-        position: absolute;
-        top: 5%;
-        left: 5%;
-        right: 5%;
-        bottom: 5%;
-        border: 2px dashed rgba(56, 189, 248, 0.8);
-        border-radius: 12px;
-        display: none;
-        pointer-events: none;
-        z-index: 5;
-        box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.5);
-      }
+    /* floating controls */
+    .floating-controls{
+      display:flex;gap:12px;
+      background:rgba(15,23,42,0.7);
+      backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+      padding:8px;border-radius:100px;
+      margin-top:12px;position:relative;z-index:20;
+      box-shadow:0 10px 30px rgba(0,0,0,0.5);
+      border:1px solid rgba(255,255,255,0.1);
+      justify-content:space-between;width:90%;
+      margin-left:auto;margin-right:auto;
+    }
+    .btn{
+      border:none;font-weight:700;font-size:0.95rem;cursor:pointer;
+      display:flex;align-items:center;justify-content:center;
+      transition:all 0.3s ease;color:var(--text-primary);
+      font-family:inherit;min-height:50px;
+    }
+    .btn:active{transform:scale(0.95);}
+    .btn-icon{width:50px;border-radius:50%;background:var(--glass-bg);border:1px solid var(--glass-border);font-size:1.2rem;}
+    .btn-icon.active{background:var(--warning);color:#000;border-color:var(--warning);}
+    .btn-scan{flex:1;background:linear-gradient(135deg,var(--primary),var(--secondary));border-radius:100px;color:white;margin:0 4px;border:1px solid rgba(255,255,255,0.2);}
+    .btn-scan.stop{background:linear-gradient(135deg,var(--danger),#be123c);}
 
-      .targeting-box::before,
-      .targeting-box::after {
-        content: "";
-        position: absolute;
-        width: 40px;
-        height: 40px;
-        border-color: #38bdf8;
-        border-style: solid;
-      }
-      .targeting-box::before {
-        top: -2px;
-        left: -2px;
-        border-width: 4px 0 0 4px;
-      }
-      .targeting-box::after {
-        bottom: -2px;
-        right: -2px;
-        border-width: 0 4px 4px 0;
-      }
+    /* FORM */
+    .input-group{margin-bottom:18px;}
+    .input-group label{display:block;font-size:0.8rem;font-weight:700;color:var(--text-secondary);margin-bottom:8px;text-transform:uppercase;}
+    .form-control{width:100%;padding:16px;border:1px solid var(--glass-border);border-radius:var(--radius-md);outline:none;font-size:16px;background:rgba(0,0,0,0.2);color:var(--text-primary);font-family:inherit;}
+    .form-control:focus{border-color:var(--primary-light);background:rgba(0,0,0,0.4);}
+    .manual-input-wrapper{display:flex;gap:10px;}
+    .manual-input-wrapper input{flex:1;}
+    .manual-input-wrapper .btn-add{background:rgba(255,255,255,0.1);border:1px solid var(--glass-border);border-radius:var(--radius-md);padding:0 20px;}
+    .filter-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 
-      .laser-overlay {
-        position: absolute;
-        top: 50%;
-        left: 5%;
-        right: 5%;
-        height: 3px;
-        background: #38bdf8;
-        box-shadow: 0 0 20px 4px rgba(56, 189, 248, 0.9);
-        display: none;
-        z-index: 10;
-        animation: scanAnim 1.5s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
-      }
+    /* TABLE */
+    .table-wrapper{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:var(--radius-md);background:rgba(0,0,0,0.2);max-height:55vh;border:1px solid var(--glass-border);margin-top:16px;}
+    table{width:100%;border-collapse:collapse;white-space:nowrap;}
+    th,td{padding:14px 16px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.05);font-size:0.9rem;}
+    th{background:rgba(255,255,255,0.05);font-weight:700;color:var(--text-secondary);position:sticky;top:0;z-index:2;font-size:0.75rem;text-transform:uppercase;}
+    .badge{background:linear-gradient(135deg,rgba(59,130,246,0.2),rgba(139,92,246,0.2));color:#e0e7ff;padding:6px 10px;border-radius:8px;font-weight:600;font-size:0.8rem;font-family:"Space Grotesk",monospace;}
+    .btn-del{color:#fca5a5;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
 
-      @keyframes scanAnim {
-        0% {
-          top: 5%;
-        }
-        100% {
-          top: 95%;
-        }
-      }
+    /* EXPORT */
+    .btn-export-big{background:rgba(255,255,255,0.05);border:1px solid var(--glass-border);color:var(--text-primary);width:100%;padding:24px;border-radius:var(--radius-lg);font-size:1.1rem;display:flex;flex-direction:column;align-items:center;gap:12px;margin-bottom:16px;cursor:pointer;}
+    .btn-export-big i{font-size:2.5rem;}
+    .btn-export-big.accent{background:linear-gradient(135deg,rgba(16,185,129,0.2),rgba(16,185,129,0.05));border-color:rgba(16,185,129,0.3);color:#34d399;}
+    .btn-export-big.blue{background:linear-gradient(135deg,rgba(59,130,246,0.2),rgba(59,130,246,0.05));border-color:rgba(59,130,246,0.3);color:#60a5fa;}
 
-      .scanner-placeholder {
-        color: #475569;
-        font-size: 1.05rem;
-        font-weight: 600;
-        text-align: center;
-        padding: 20px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 12px;
-      }
+    div:where(.swal2-container) div:where(.swal2-popup){
+      background:rgba(15,23,42,0.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+      color:var(--text-primary);border-radius:var(--radius-lg);border:1px solid rgba(255,255,255,0.1);
+    }
+  </style>
+</head>
+<body>
 
-      /* Kontrol & Form */
-      .controls {
-        display: flex;
-        gap: 12px;
-      }
+<div class="topbar">
+  <div class="topbar-title"><i class="fas fa-qrcode" style="margin-right:8px"></i>PT. Daya Sakti Niaga</div>
+  <span class="engine-badge" id="engineBadge">SCANNER</span>
+</div>
 
-      .btn {
-        border: none;
-        border-radius: 14px;
-        font-weight: 800;
-        font-size: 1.05rem;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
-        padding: 16px;
-        color: var(--text-dark);
-        background: #f1f5f9;
-      }
-      .btn:active {
-        transform: scale(0.92);
-      }
+<div class="container">
 
-      .btn-scan {
-        flex: 1;
-        background: var(--text-dark);
-        color: white;
-        box-shadow: 0 6px 20px rgba(15, 23, 42, 0.3);
-      }
-      .btn-scan.stop {
-        background: var(--danger);
-        box-shadow: 0 6px 20px rgba(239, 68, 68, 0.3);
-      }
+  <!-- ══ SCAN PAGE ══ -->
+  <div id="view-scan" class="view-page active">
+    <div class="card">
+      <div class="card-header"><i class="fas fa-camera-viewfinder"></i> Pindai Barcode</div>
 
-      .btn-icon {
-        width: 60px;
-        font-size: 1.2rem;
-      }
-      .btn-icon.active {
-        background: var(--warning);
-        color: white;
-      }
-
-      .input-group {
-        margin-bottom: 18px;
-      }
-      .input-group label {
-        display: block;
-        font-size: 0.85rem;
-        font-weight: 700;
-        color: var(--text-muted);
-        margin-bottom: 8px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
-
-      .form-control {
-        width: 100%;
-        padding: 15px 18px;
-        border: 2px solid var(--border);
-        border-radius: 12px;
-        outline: none;
-        font-size: 1rem;
-        background: #f8fafc;
-        transition: all 0.2s;
-        font-weight: 500;
-      }
-      .form-control:focus {
-        border-color: var(--primary);
-        background: #fff;
-        box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.15);
-      }
-
-      .manual-input-wrapper {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-      }
-      @media (min-width: 400px) {
-        .manual-input-wrapper {
-          flex-direction: row;
-        }
-      }
-      #manualData {
-        flex: 1;
-      }
-      .filter-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 14px;
-      }
-
-      /* Widgets Summary */
-      .summary-container {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-        margin-bottom: 18px;
-      }
-      .summary-box {
-        background: #f8fafc;
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 12px;
-        text-align: center;
-      }
-      .summary-box .title {
-        font-size: 0.75rem;
-        font-weight: 700;
-        color: var(--text-muted);
-        text-transform: uppercase;
-      }
-      .summary-box .value {
-        font-size: 1.35rem;
-        font-weight: 800;
-        color: var(--text-dark);
-        margin-top: 4px;
-      }
-
-      /* Tabel Responsive */
-      .table-wrapper {
-        width: 100%;
-        max-width: 100%;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        border-radius: 14px;
-        border: 1px solid var(--border);
-        display: block;
-        background: #fff;
-        max-height: 450px;
-        overflow-y: auto;
-        scroll-behavior: smooth;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
-      }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        white-space: nowrap;
-      }
-      th,
-      td {
-        padding: 16px 20px;
-        text-align: left;
-        border-bottom: 1px solid var(--border);
-        font-size: 0.95rem;
-      }
-      th {
-        background: #f8fafc;
-        font-weight: 800;
-        color: var(--text-dark);
-        position: sticky;
-        top: 0;
-        z-index: 2;
-      }
-      tbody tr {
-        transition: background-color 0.1s;
-      }
-      tbody tr:hover {
-        background-color: #f1f5f9;
-      }
-
-      @keyframes highlightNew {
-        0% {
-          background-color: #bae6fd;
-        }
-        100% {
-          background-color: transparent;
-        }
-      }
-      .new-row {
-        animation: highlightNew 1.5s ease-out;
-      }
-
-      .badge {
-        background: #f1f5f9;
-        color: var(--text-dark);
-        padding: 6px 12px;
-        border-radius: 8px;
-        font-family: "Courier New", Courier, monospace;
-        font-weight: 800;
-        font-size: 1rem;
-        border: 1px solid #cbd5e1;
-      }
-
-      .btn-del {
-        color: var(--danger);
-        background: #fee2e2;
-        border: none;
-        padding: 10px 14px;
-        border-radius: 10px;
-        cursor: pointer;
-        transition: 0.2s;
-        font-size: 1rem;
-      }
-      .btn-del:active {
-        background: #fca5a5;
-        transform: scale(0.9);
-      }
-
-      .btn-export {
-        background: var(--success);
-        color: white;
-        width: 100%;
-        padding: 16px;
-        margin-top: 12px;
-        font-size: 1.05rem;
-        border: none;
-        border-radius: 14px;
-        font-weight: 800;
-        box-shadow: 0 6px 15px rgba(16, 185, 129, 0.25);
-        cursor: pointer;
-        transition: 0.2s;
-      }
-      .btn-export:active {
-        transform: scale(0.97);
-        background: #059669;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="navbar">
-      <i class="fas fa-qrcode" style="margin-right: 12px"></i> SCANNER SCM
-      <span class="engine-badge" id="engineBadge">PREMIUM MODE</span>
-    </div>
-
-    <div class="container">
-      <div class="card">
-        <div class="card-header">
-          <i class="fas fa-camera-viewfinder" style="color: var(--primary)"></i>
-          Pemindai Super Akurat
+      <div class="scanner-wrapper" style="position:relative;">
+        <!-- Placeholder saat kamera mati -->
+        <div id="scanPlaceholder">
+          <i class="fas fa-video-slash"></i>
+          <span>Kamera Offline</span>
         </div>
 
-        <div class="scanner-container" id="scannerBox">
-          <div class="scanner-placeholder" id="placeholderMsg">
-            <i class="fas fa-video-slash fa-3x" style="opacity: 0.2"></i>
-            <span>Kamera Ready</span>
-          </div>
-          <video id="videoElement" autoplay playsinline muted></video>
-          <div class="targeting-box" id="targetBox"></div>
-          <div class="laser-overlay" id="laser"></div>
-        </div>
+        <!-- html5-qrcode mount point -->
+        <div id="qr-reader" class="hidden"></div>
 
-        <div class="controls">
-          <button
-            class="btn btn-icon"
-            id="btnTorch"
-            onclick="toggleTorch()"
-            title="Nyalakan Senter"
-          >
-            <i class="fas fa-bolt"></i>
-          </button>
-          <button
-            class="btn btn-icon"
-            onclick="switchCamera()"
-            title="Tukar Kamera"
-          >
-            <i class="fas fa-camera-rotate"></i>
-          </button>
-          <button class="btn btn-scan" id="btnAction" onclick="toggleScan()">
-            <i class="fas fa-play" style="margin-right: 8px"></i> MULAI SCAN
-          </button>
-        </div>
+        <!-- Flash sukses -->
+        <div id="flashOverlay"></div>
 
-        <div class="input-group" style="margin-top: 24px">
-          <label>Input Manual (Darurat)</label>
-          <div class="manual-input-wrapper">
-            <input
-              type="text"
-              id="manualData"
-              class="form-control"
-              placeholder="Ketik nomor barcode..."
-            />
-            <button
-              class="btn btn-scan"
-              style="
-                width: auto;
-                padding: 0 24px;
-                flex: none;
-                background: var(--primary);
-              "
-              onclick="inputManual()"
-            >
-              <i class="fas fa-plus" style="margin-right: 6px"></i> Tambah
-            </button>
-          </div>
+        <!-- Laser animasi -->
+        <div class="laser-wrap" style="height:0;">
+          <div class="laser" id="laser"></div>
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-header">
-          <i class="fas fa-database" style="color: var(--primary)"></i> Database
-          Barang
-        </div>
-
-        <div class="summary-container">
-          <div class="summary-box">
-            <div class="title">Total Baris</div>
-            <div class="value" id="summaryTotalItems">0</div>
-          </div>
-          <div class="summary-box">
-            <div class="title">Total Luas (M²)</div>
-            <div class="value" id="summaryTotalM2">0.00</div>
-          </div>
-        </div>
-
-        <div class="input-group">
-          <label>Mode Penyimpanan & Tampilan</label>
-          <select class="form-control" id="dataMode" onchange="renderData()">
-            <option value="harian" selected>
-              Data Harian (Hanya Hari Ini)
-            </option>
-            <option value="semua">Semua Master Data (Riwayat Penuh)</option>
-          </select>
-        </div>
-
-        <div class="filter-grid">
-          <div class="input-group">
-            <label>Dari Tanggal</label>
-            <input
-              type="date"
-              class="form-control"
-              id="start"
-              onchange="renderData()"
-            />
-          </div>
-          <div class="input-group">
-            <label>Sampai Tanggal</label>
-            <input
-              type="date"
-              class="form-control"
-              id="end"
-              onchange="renderData()"
-            />
-          </div>
-        </div>
-
-        <div class="input-group">
-          <label>Cari Data</label>
-          <input
-            type="text"
-            class="form-control"
-            id="search"
-            placeholder="Ketik barcode atau golongan..."
-            onkeyup="renderData()"
-          />
-        </div>
-
-        <button class="btn-export" onclick="downloadExcelHarian()">
-          <i class="fas fa-file-excel" style="margin-right: 8px"></i> Export
-          Harian (.xlsx)
+      <!-- Tombol kontrol -->
+      <div class="floating-controls">
+        <button class="btn btn-icon" id="btnTorch" onclick="toggleTorch()"><i class="fas fa-bolt"></i></button>
+        <button class="btn btn-scan" id="btnAction" onclick="toggleScan()">
+          <i class="fas fa-play" style="margin-right:6px"></i> SCAN
         </button>
+        <button class="btn btn-icon" onclick="switchCamera()"><i class="fas fa-camera-rotate"></i></button>
+      </div>
 
-        <button
-          class="btn-export"
-          style="background: var(--text-dark); box-shadow: none"
-          onclick="downloadExcelSemua()"
-        >
-          <i class="fas fa-archive" style="margin-right: 8px"></i> Export Semua
-          Data (.xlsx)
-        </button>
-
-        <div
-          class="table-wrapper"
-          id="tableScrollWrapper"
-          style="margin-top: 24px"
-        >
-          <table>
-            <thead>
-              <tr>
-                <th>No</th>
-                <th>Kode Barcode</th>
-                <th>Panjang</th>
-                <th>Lebar</th>
-                <th>Jumlah Potongan</th>
-                <th>Persegi</th>
-                <th>Tanggal Scan</th>
-                <th>Jam</th>
-                <th>Golongan</th>
-                <th>Format</th>
-                <th>Edit</th>
-              </tr>
-            </thead>
-            <tbody id="dataTable"></tbody>
-          </table>
+      <div class="input-group" style="margin-top:20px;">
+        <label>Input Manual (Darurat)</label>
+        <div class="manual-input-wrapper">
+          <input type="text" id="manualData" class="form-control" placeholder="Ketik barcode..." inputmode="text"/>
+          <button class="btn btn-add" onclick="inputManual()"><i class="fas fa-plus"></i></button>
         </div>
       </div>
     </div>
+  </div>
 
-    <script>
-      const STORAGE_KEY = "SCMBarcodeMasterData";
-      let allData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+  <!-- ══ HARI INI ══ -->
+  <div id="view-session" class="view-page">
+    <div class="card">
+      <div class="card-header"><i class="fas fa-clipboard-list"></i> Data Scan Hari Ini</div>
+      <div class="table-wrapper">
+        <table>
+          <thead><tr><th>No</th><th>Kode</th><th>Golongan</th><th>Panjang</th><th>Lebar</th><th>Potongan</th><th>M²</th><th>Jam</th><th>Aksi</th></tr></thead>
+          <tbody id="tableToday"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 
-      let scannedCodesSet = new Set(allData.map((item) => item.kode));
+  <!-- ══ DATABASE ══ -->
+  <div id="view-database" class="view-page">
+    <div class="card">
+      <div class="card-header"><i class="fas fa-database"></i> Master Database</div>
+      <div class="filter-grid">
+        <div class="input-group"><label>Dari Tanggal</label><input type="date" class="form-control" id="start" onchange="renderDatabase()"/></div>
+        <div class="input-group"><label>Sampai Tanggal</label><input type="date" class="form-control" id="end" onchange="renderDatabase()"/></div>
+      </div>
+      <div class="input-group"><label>Pencarian</label><input type="search" class="form-control" id="search" placeholder="Cari barcode/golongan..." onkeyup="renderDatabase()"/></div>
+      <div class="table-wrapper">
+        <table>
+          <thead><tr><th>No</th><th>Kode</th><th>Golongan</th><th>Panjang</th><th>Lebar</th><th>Potongan</th><th>M²</th><th>Tgl</th><th>Jam</th><th>Aksi</th></tr></thead>
+          <tbody id="tableAll"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 
-      let isScanning = false;
-      let currentCam = "environment";
-      let lastErrorTime = 0;
-      let isTorchOn = false;
-      let streamTrack = null;
-      let scanLoopFrame = null;
-      let audioCtx = null;
+  <!-- ══ EXPORT ══ -->
+  <div id="view-export" class="view-page">
+    <div class="card">
+      <div class="card-header"><i class="fas fa-file-export"></i> Pusat Unduhan</div>
+      <p style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:24px;">Pilih format laporan yang ingin Anda unduh ke dalam format Microsoft Excel (.xlsx).</p>
+      <button class="btn btn-export-big accent" onclick="downloadExcelHarian()">
+        <i class="fas fa-file-excel"></i>
+        <div><strong>Export Data Harian</strong><div style="font-size:0.8rem;color:var(--text-secondary);font-weight:400;margin-top:4px;">Unduh khusus hasil scan hari ini</div></div>
+      </button>
+      <button class="btn btn-export-big blue" onclick="downloadExcelSemua()">
+        <i class="fas fa-archive"></i>
+        <div><strong>Export Semua Database</strong><div style="font-size:0.8rem;color:var(--text-secondary);font-weight:400;margin-top:4px;">Unduh seluruh riwayat data tersimpan</div></div>
+      </button>
+    </div>
+  </div>
 
-      const video = document.getElementById("videoElement");
-      const Toast = Swal.mixin({
-        toast: true,
-        position: "bottom-end",
-        showConfirmButton: false,
-        timer: 1500,
-      });
+</div><!-- /container -->
 
-      const isIOS =
-        /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-      const hasNativeScanner = "BarcodeDetector" in window;
-      let nativeDetector = null;
-      let zxingReader = null;
+<nav class="bottom-nav">
+  <a class="nav-item active" onclick="switchPage('view-scan',this)"><i class="fas fa-qrcode"></i><span>Scan</span></a>
+  <a class="nav-item" onclick="switchPage('view-session',this)"><i class="fas fa-clipboard-check"></i><span>Hari Ini</span></a>
+  <a class="nav-item" onclick="switchPage('view-database',this)"><i class="fas fa-server"></i><span>Database</span></a>
+  <a class="nav-item" onclick="switchPage('view-export',this)"><i class="fas fa-download"></i><span>Export</span></a>
+</nav>
 
-      if (hasNativeScanner && !isIOS) {
-        document.getElementById("engineBadge").innerText = "HW ACCEL ON";
-        nativeDetector = new BarcodeDetector({
-          formats: [
-            "code_128", "code_39", "code_93", "ean_13", "ean_8", 
-            "upc_a", "upc_e", "itf", "codabar", "qr_code", "data_matrix", "pdf417"
-          ],
-        });
-      } else {
-        document.getElementById("engineBadge").innerText = isIOS
-          ? "iOS OPTIMIZED"
-          : "SOFTWARE MODE";
+<script>
+// ════════════════════════════════════════
+//  STORAGE
+// ════════════════════════════════════════
+const STORAGE_KEY = "SCMBarcodeMasterData";
+let allData = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+let scannedCodesSet = new Set(allData.map(i => i.kode));
+
+// ════════════════════════════════════════
+//  DEVICE DETECTION
+// ════════════════════════════════════════
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+  || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+document.getElementById("engineBadge").innerText = isIOS ? "iOS PRO" : "ANDROID";
+
+// ════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════
+let isScanning    = false;
+let currentCam    = "environment";   // "environment" | "user"
+let html5Scanner  = null;
+let lastErrorTime = 0;
+let isTorchOn     = false;
+let activeTrack   = null;            // VideoTrack untuk torch
+let audioCtx      = null;
+
+const Toast = Swal.mixin({
+  toast:true, position:"top-end", showConfirmButton:false,
+  timer:1500, background:"rgba(15,23,42,0.9)", color:"#fff"
+});
+
+// ════════════════════════════════════════
+//  AUDIO INIT
+// ════════════════════════════════════════
+function initAudio(){
+  if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  if(audioCtx.state==="suspended") audioCtx.resume();
+}
+
+// ════════════════════════════════════════
+//  PAGE NAV
+// ════════════════════════════════════════
+function switchPage(pageId, el){
+  if(pageId !== "view-scan" && isScanning) stopScan();
+  document.querySelectorAll(".view-page").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+  document.getElementById(pageId).classList.add("active");
+  el.classList.add("active");
+  if(pageId==="view-session")  renderToday();
+  if(pageId==="view-database") renderDatabase();
+}
+
+// ════════════════════════════════════════
+//  TOGGLE SCAN (START / STOP)
+// ════════════════════════════════════════
+async function toggleScan(){
+  if(isScanning){ stopScan(); return; }
+  initAudio();
+  await startScan();
+}
+
+async function startScan(){
+  const btn = document.getElementById("btnAction");
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:6px"></i> Memuat...';
+  btn.disabled  = true;
+
+  try {
+    // Buat instance baru setiap kali scan dimulai
+    html5Scanner = new Html5Qrcode("qr-reader", { verbose: false });
+
+    const config = {
+      fps: 15,                      // frame per detik — 15 sudah cukup cepat & hemat CPU
+      qrbox: { width: 250, height: 250 },
+      aspectRatio: 1.0,
+      disableFlip: false,
+      experimentalFeatures: {
+        useBarCodeDetectorIfSupported: true  // pakai Native API kalau tersedia (Android Chrome)
+      },
+      formatsToSupport: [
+        Html5QrcodeSupportedFormats.CODE_128,
+        Html5QrcodeSupportedFormats.CODE_39,
+        Html5QrcodeSupportedFormats.CODE_93,
+        Html5QrcodeSupportedFormats.EAN_13,
+        Html5QrcodeSupportedFormats.EAN_8,
+        Html5QrcodeSupportedFormats.UPC_A,
+        Html5QrcodeSupportedFormats.UPC_E,
+        Html5QrcodeSupportedFormats.ITF,
+        Html5QrcodeSupportedFormats.CODABAR,
+        Html5QrcodeSupportedFormats.QR_CODE,
+        Html5QrcodeSupportedFormats.DATA_MATRIX,
+        Html5QrcodeSupportedFormats.PDF_417,
+      ]
+    };
+
+    // Pilih kamera
+    const facingMode = currentCam === "environment"
+      ? { facingMode: "environment" }
+      : { facingMode: "user" };
+
+    await html5Scanner.start(
+      facingMode,
+      config,
+      onScanSuccess,   // callback sukses
+      null             // callback gagal — null = diam saja (bukan error, hanya belum ada barcode)
+    );
+
+    // Ambil VideoTrack untuk torch
+    try {
+      const stream = html5Scanner.getRunningTrackCapabilities
+        ? null
+        : html5Scanner?.getRunningTrackCameraCapabilities?.()?.cameraDevice?.groupId;
+      // Cara andal: ambil lewat DOM video
+      const videoEl = document.querySelector("#qr-reader video");
+      if(videoEl && videoEl.srcObject){
+        const tracks = videoEl.srcObject.getVideoTracks();
+        if(tracks.length) activeTrack = tracks[0];
       }
+    } catch(e){}
 
-      function getZXingHints() {
-        try {
-          return new Map([
-            [ZXing.DecodeHintType.TRY_HARDER, true],
-            [ZXing.DecodeHintType.ASSUME_GS1, true],
-            [
-              ZXing.DecodeHintType.POSSIBLE_FORMATS,
-              [
-                ZXing.BarcodeFormat.CODE_128,
-                ZXing.BarcodeFormat.CODE_39,
-                ZXing.BarcodeFormat.EAN_13,
-                ZXing.BarcodeFormat.EAN_8,
-                ZXing.BarcodeFormat.UPC_A,
-                ZXing.BarcodeFormat.ITF,
-                ZXing.BarcodeFormat.QR_CODE,
-                ZXing.BarcodeFormat.DATA_MATRIX,
-              ],
-            ],
-          ]);
-        } catch (e) {
-          return undefined;
-        }
-      }
+    isScanning = true;
+    document.getElementById("scanPlaceholder").classList.add("hidden");
+    document.getElementById("qr-reader").classList.remove("hidden");
+    document.getElementById("laser").classList.add("active");
+    btn.innerHTML = '<i class="fas fa-stop" style="margin-right:6px"></i> STOP';
+    btn.classList.add("stop");
+    btn.disabled  = false;
 
-      function initAudio() {
-        if (!audioCtx) {
-          const AudioContext = window.AudioContext || window.webkitAudioContext;
-          audioCtx = new AudioContext();
-        }
-        if (audioCtx.state === "suspended") audioCtx.resume();
-      }
+  } catch(err){
+    btn.innerHTML = '<i class="fas fa-play" style="margin-right:6px"></i> SCAN';
+    btn.disabled  = false;
+    let msg = "Kamera gagal dimuat.";
+    if(err.toString().includes("NotAllowed") || err.toString().includes("Permission"))
+      msg = "Izin kamera ditolak. Buka pengaturan browser dan izinkan akses kamera.";
+    else if(err.toString().includes("NotFound"))
+      msg = "Tidak ada kamera yang terdeteksi.";
+    Swal.fire("Kamera Error", msg, "error");
+  }
+}
 
-      function parsePayloadToFields(text) {
-        const raw = (text || "").trim();
-        if (!raw) return null;
+async function stopScan(){
+  if(html5Scanner){
+    try { await html5Scanner.stop(); } catch(e){}
+    try { html5Scanner.clear(); }     catch(e){}
+    html5Scanner = null;
+  }
+  activeTrack  = null;
+  isTorchOn    = false;
+  isScanning   = false;
+  document.getElementById("btnTorch").classList.remove("active");
+  document.getElementById("laser").classList.remove("active");
+  document.getElementById("qr-reader").classList.add("hidden");
+  document.getElementById("scanPlaceholder").classList.remove("hidden");
+  const btn = document.getElementById("btnAction");
+  btn.innerHTML = '<i class="fas fa-play" style="margin-right:6px"></i> SCAN';
+  btn.classList.remove("stop");
+  btn.disabled = false;
+}
 
-        if (raw.startsWith("86") && raw.length >= 24) {
-          try {
-            const p_str = raw.slice(-4); 
-            const w_str = raw.slice(-9, -4); 
-            const l_str = raw.slice(-12, -9); 
-            const prefix = raw.slice(2, -16); 
+// ════════════════════════════════════════
+//  SCAN SUCCESS CALLBACK
+// ════════════════════════════════════════
+function onScanSuccess(decodedText, decodedResult){
+  const code = (decodedText || "").trim();
+  if(!code) return;
 
-            const golongan = prefix.replace(/^0+/, "") || "-";
-            const p_indo = parseInt(l_str, 10);
-            const l_indo = parseInt(w_str, 10) / 10; 
-            const potongan = parseInt(p_str, 10);
-            const persegi = (p_indo * l_indo * potongan) / 10000;
+  if(scannedCodesSet.has(code)){
+    const now = Date.now();
+    if(now - lastErrorTime > 2000){
+      triggerErrorFeedback();
+      Toast.fire({ icon:"error", title:"Barcode sudah ada!" });
+      lastErrorTime = now;
+    }
+    return;
+  }
+  scannedCodesSet.add(code);
+  const fmt = decodedResult?.result?.format?.formatName || "UNKNOWN";
+  simpanData(code, fmt);
+}
 
-            if (!isNaN(p_indo) && !isNaN(l_indo) && !isNaN(potongan)) {
-              return {
-                panjang: p_indo,
-                lebar: l_indo,
-                potongan: potongan,
-                persegi: persegi.toFixed(2),
-                golongan: golongan,
-              };
-            }
-          } catch (e) {}
-        }
+// ════════════════════════════════════════
+//  TORCH
+// ════════════════════════════════════════
+async function toggleTorch(){
+  if(!isScanning) return Toast.fire({ icon:"warning", title:"Mulai scan dulu!" });
+  // Ambil track dari video jika belum ada
+  if(!activeTrack){
+    const videoEl = document.querySelector("#qr-reader video");
+    if(videoEl?.srcObject){
+      const tracks = videoEl.srcObject.getVideoTracks();
+      if(tracks.length) activeTrack = tracks[0];
+    }
+  }
+  if(!activeTrack) return Toast.fire({ icon:"error", title:"Track kamera tidak ditemukan" });
+  try {
+    const cap = activeTrack.getCapabilities ? activeTrack.getCapabilities() : {};
+    if(cap.torch){
+      isTorchOn = !isTorchOn;
+      await activeTrack.applyConstraints({ advanced:[{ torch:isTorchOn }] });
+      document.getElementById("btnTorch").classList.toggle("active", isTorchOn);
+    } else {
+      Toast.fire({ icon:"info", title:"Senter tidak didukung perangkat ini" });
+    }
+  } catch(e){
+    Toast.fire({ icon:"error", title:"Gagal mengaktifkan senter" });
+  }
+}
 
-        return {
-          panjang: "-",
-          lebar: "-",
-          potongan: "-",
-          persegi: "-",
-          golongan: "-",
-        };
-      }
+// ════════════════════════════════════════
+//  SWITCH CAMERA
+// ════════════════════════════════════════
+async function switchCamera(){
+  currentCam = currentCam === "environment" ? "user" : "environment";
+  if(isScanning){
+    await stopScan();
+    setTimeout(startScan, 300);
+  } else {
+    Toast.fire({ icon:"info", title: currentCam==="environment" ? "Kamera Belakang" : "Kamera Depan" });
+  }
+}
 
-      async function toggleTorch() {
-        const btnTorch = document.getElementById("btnTorch");
-        if (!isScanning || !streamTrack)
-          return Toast.fire({
-            icon: "warning",
-            title: "Mulai scan terlebih dahulu!",
-          });
+// ════════════════════════════════════════
+//  INPUT MANUAL
+// ════════════════════════════════════════
+function inputManual(){
+  const val = document.getElementById("manualData").value.trim();
+  if(!val) return Toast.fire({ icon:"error", title:"Kode kosong!" });
+  if(scannedCodesSet.has(val)){
+    triggerErrorFeedback();
+    return Toast.fire({ icon:"error", title:"Barcode sudah ada!" });
+  }
+  scannedCodesSet.add(val);
+  simpanData(val, "MANUAL");
+  document.getElementById("manualData").value = "";
+}
 
-        try {
-          const capabilities = streamTrack.getCapabilities();
-          if (capabilities.torch) {
-            isTorchOn = !isTorchOn;
-            await streamTrack.applyConstraints({
-              advanced: [{ torch: isTorchOn }],
-            });
-            btnTorch.classList.toggle("active", isTorchOn);
-          } else {
-            Toast.fire({
-              icon: "error",
-              title: "Senter tidak didukung kamera ini",
-            });
-          }
-        } catch (error) {
-          Toast.fire({ icon: "error", title: "Gagal mengakses senter" });
-        }
-      }
+// ════════════════════════════════════════
+//  FEEDBACK
+// ════════════════════════════════════════
+function triggerFeedback(){
+  if(navigator.vibrate) navigator.vibrate([30]);
+  playBeep(3500,"square",0.04,0.5);
+  // Flash hijau
+  const ov = document.getElementById("flashOverlay");
+  ov.style.opacity = "1";
+  setTimeout(()=>{ ov.style.opacity="0"; }, 180);
+}
+function triggerErrorFeedback(){
+  if(navigator.vibrate) navigator.vibrate([100,50,100]);
+  playBeep(300,"sawtooth",0.15,0.5);
+}
+function playBeep(freq,type,duration,gain){
+  if(!audioCtx) return;
+  try{
+    const osc=audioCtx.createOscillator(), g=audioCtx.createGain();
+    osc.connect(g); g.connect(audioCtx.destination);
+    osc.type=type;
+    osc.frequency.setValueAtTime(freq,audioCtx.currentTime);
+    g.gain.setValueAtTime(0,audioCtx.currentTime);
+    g.gain.linearRampToValueAtTime(gain,audioCtx.currentTime+0.005);
+    g.gain.linearRampToValueAtTime(0,audioCtx.currentTime+duration);
+    osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime+duration);
+  } catch(e){}
+}
 
-      async function toggleScan() {
-        const btn = document.getElementById("btnAction");
-        const placeholder = document.getElementById("placeholderMsg");
-        const laser = document.getElementById("laser");
-        const targetBox = document.getElementById("targetBox");
+// ════════════════════════════════════════
+//  PARSING BARCODE
+// ════════════════════════════════════════
+function parsePayloadToFields(text){
+  const raw = (text||"").trim();
+  if(!raw) return null;
+  if(raw.startsWith("86") && raw.length >= 24){
+    try{
+      const p_str  = raw.slice(-4);
+      const w_str  = raw.slice(-9,-4);
+      const l_str  = raw.slice(-12,-9);
+      const prefix = raw.slice(2,-16);
+      const golongan = prefix.replace(/^0+/,"") || "-";
+      const panjang  = parseInt(l_str,10);
+      const lebar    = parseInt(w_str,10)/10;
+      const potongan = parseInt(p_str,10);
+      const persegi  = (panjang * lebar * potongan)/10000;
+      if(!isNaN(panjang)&&!isNaN(lebar)&&!isNaN(potongan))
+        return { panjang, lebar, potongan, persegi:persegi.toFixed(2), golongan };
+    } catch(e){}
+  }
+  return { panjang:"-", lebar:"-", potongan:"-", persegi:"-", golongan:"-" };
+}
 
-        if (isScanning) {
-          isScanning = false;
-          isTorchOn = false;
-          document.getElementById("btnTorch").classList.remove("active");
-          cancelAnimationFrame(scanLoopFrame);
+// ════════════════════════════════════════
+//  SIMPAN DATA
+// ════════════════════════════════════════
+function simpanData(kode, fmt){
+  const nowDate = new Date();
+  const tglLocal = new Date(nowDate.getTime()-nowDate.getTimezoneOffset()*60000)
+                     .toISOString().split("T")[0];
+  const parsed   = parsePayloadToFields(kode);
+  allData.push({
+    id       : Date.now(),
+    scannedAt: Date.now(),
+    kode, format: fmt,
+    panjang  : parsed?.panjang  ?? "-",
+    lebar    : parsed?.lebar    ?? "-",
+    potongan : parsed?.potongan ?? "-",
+    persegi  : parsed?.persegi  ?? "-",
+    golongan : parsed?.golongan ?? "-",
+    tanggal  : tglLocal,
+    jam      : nowDate.toTimeString().split(" ")[0],
+  });
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(allData));
+  triggerFeedback();
+  Toast.fire({ icon:"success", title:"Tersimpan!" });
+}
 
-          if (streamTrack) {
-            streamTrack.stop();
-            streamTrack = null;
-          }
-          if (video.srcObject) {
-            video.srcObject.getTracks().forEach((t) => t.stop());
-            video.srcObject = null;
-          }
-          if (zxingReader) {
-            zxingReader.reset();
-            zxingReader = null;
-          }
+// ════════════════════════════════════════
+//  RENDER TABLES
+// ════════════════════════════════════════
+function formatTgl(tgl){
+  if(!tgl||tgl==="-") return "-";
+  const p=tgl.split("-");
+  return p.length===3 ? `${p[2]}/${p[1]}/${p[0].substring(2)}` : tgl;
+}
 
-          video.style.display = "none";
-          laser.style.display = "none";
-          targetBox.style.display = "none";
-          placeholder.style.display = "flex";
-          btn.innerHTML = '<i class="fas fa-play" style="margin-right: 8px;"></i> MULAI SCAN';
-          btn.classList.remove("stop");
-        } else {
-          initAudio();
-          try {
-            video.style.display = "block";
-            laser.style.display = "block";
-            targetBox.style.display = "block";
-            placeholder.style.display = "none";
-            btn.innerHTML = '<i class="fas fa-stop" style="margin-right: 8px;"></i> BERHENTI SCAN';
-            btn.classList.add("stop");
-            isScanning = true;
+function renderToday(){
+  const tbody   = document.getElementById("tableToday");
+  const nowDate = new Date();
+  const hariIni = new Date(nowDate.getTime()-nowDate.getTimezoneOffset()*60000)
+                    .toISOString().split("T")[0];
+  const fData   = allData.filter(i=>i.tanggal===hariIni)
+                         .sort((a,b)=>(b.scannedAt||0)-(a.scannedAt||0));
+  tbody.innerHTML="";
+  if(!fData.length){
+    tbody.innerHTML=`<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted);">Belum ada data di-scan hari ini</td></tr>`;
+    return;
+  }
+  fData.forEach((i,idx)=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`
+      <td>${idx+1}</td>
+      <td><span class="badge">${i.kode}</span></td>
+      <td><b>${i.golongan}</b></td>
+      <td>${i.panjang}</td><td>${i.lebar}</td><td>${i.potongan}</td><td>${i.persegi}</td>
+      <td>${i.jam.substring(0,5)}</td>
+      <td><button class="btn-del" onclick="hapus(${i.id},'${i.kode}','today')"><i class="fas fa-trash"></i></button></td>`;
+    tbody.appendChild(tr);
+  });
+}
 
-            let constraints = {
-              video: {
-                facingMode: currentCam,
-                width: { ideal: 1280 },
-                height: { ideal: 720 },
-              },
-            };
+function renderDatabase(){
+  const tbody  = document.getElementById("tableAll");
+  const start  = document.getElementById("start").value;
+  const end    = document.getElementById("end").value;
+  const search = document.getElementById("search").value.toLowerCase();
+  const fData  = allData.filter(i=>{
+    if(start && i.tanggal<start) return false;
+    if(end   && i.tanggal>end)   return false;
+    if(search && !i.kode.toLowerCase().includes(search) && !i.golongan.toLowerCase().includes(search)) return false;
+    return true;
+  }).sort((a,b)=>(b.scannedAt||0)-(a.scannedAt||0));
+  tbody.innerHTML="";
+  if(!fData.length){
+    tbody.innerHTML=`<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-muted);">Database kosong atau data tidak ditemukan</td></tr>`;
+    return;
+  }
+  fData.forEach((i,idx)=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`
+      <td>${idx+1}</td>
+      <td><span class="badge">${i.kode}</span></td>
+      <td><b>${i.golongan}</b></td>
+      <td>${i.panjang}</td><td>${i.lebar}</td><td>${i.potongan}</td><td>${i.persegi}</td>
+      <td>${formatTgl(i.tanggal)}</td><td>${i.jam.substring(0,5)}</td>
+      <td><button class="btn-del" onclick="hapus(${i.id},'${i.kode}','db')"><i class="fas fa-trash"></i></button></td>`;
+    tbody.appendChild(tr);
+  });
+}
 
-            if (!isIOS) {
-              constraints.video.advanced = [{ focusMode: "continuous" }];
-            }
+function hapus(id, kode, source){
+  Swal.fire({
+    title:"Hapus Data?", text:"Data akan dihapus permanen.", icon:"warning",
+    showCancelButton:true, confirmButtonColor:"var(--danger)",
+    cancelButtonColor:"rgba(255,255,255,0.1)",
+    confirmButtonText:"Ya, Hapus", cancelButtonText:"Batal"
+  }).then(res=>{
+    if(res.isConfirmed){
+      allData=allData.filter(i=>i.id!==id);
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(allData));
+      scannedCodesSet.delete(kode);
+      renderToday(); renderDatabase();
+    }
+  });
+}
 
-            const stream = await navigator.mediaDevices.getUserMedia(constraints);
-            video.srcObject = stream;
-            streamTrack = stream.getVideoTracks()[0];
-            await video.play();
-
-            if (nativeDetector) {
-              const detectLoop = async () => {
-                if (!isScanning) return;
-                try {
-                  const barcodes = await nativeDetector.detect(video);
-                  if (barcodes.length > 0) {
-                    processBarcodeDetected(barcodes[0].rawValue, barcodes[0].format.toUpperCase());
-                  }
-                } catch (e) {}
-                scanLoopFrame = requestAnimationFrame(detectLoop);
-              };
-              scanLoopFrame = requestAnimationFrame(detectLoop);
-            } else {
-              zxingReader = new ZXing.BrowserMultiFormatReader(getZXingHints());
-              zxingReader.timeBetweenDecodingAttempts = 0;
-
-              zxingReader.decodeFromStream(
-                stream,
-                "videoElement",
-                (result, err) => {
-                  if (result) {
-                    processBarcodeDetected(
-                      result.getText(),
-                      result.getBarcodeFormat ? result.getBarcodeFormat().toString() : "UNKNOWN"
-                    );
-                  }
-                },
-              );
-            }
-          } catch (err) {
-            Swal.fire(
-              "Error",
-              "Kamera gagal dimuat. Pastikan izin kamera telah diberikan.",
-              "error",
-            );
-            toggleScan();
-          }
-        }
-      }
-
-      function processBarcodeDetected(code, format) {
-        if (scannedCodesSet.has(code)) {
-          const now = Date.now();
-          if (now - lastErrorTime > 2000) {
-            triggerErrorFeedback();
-            Toast.fire({
-              icon: "error",
-              title: "DITOLAK: Barcode telah tersimpan!",
-            });
-            lastErrorTime = now;
-          }
-          return; 
-        }
-
-        scannedCodesSet.add(code);
-        simpanData(code, format);
-      }
-
-      function switchCamera() {
-        currentCam = currentCam === "environment" ? "user" : "environment";
-        if (isScanning) {
-          toggleScan();
-          setTimeout(toggleScan, 300);
-        } else {
-          Toast.fire({
-            icon: "info",
-            title: currentCam === "environment" ? "Kamera Belakang Siap" : "Kamera Depan Siap",
-          });
-        }
-      }
-
-      function triggerFeedback() {
-        if (navigator.vibrate) navigator.vibrate([30]);
-        if (audioCtx) {
-          try {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.type = "square";
-            osc.frequency.setValueAtTime(3500, audioCtx.currentTime);
-            gain.gain.setValueAtTime(0, audioCtx.currentTime);
-            gain.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.005);
-            gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.04);
-            osc.start(audioCtx.currentTime);
-            osc.stop(audioCtx.currentTime + 0.04);
-          } catch (e) {}
-        }
-        const scannerBox = document.getElementById("scannerBox");
-        scannerBox.style.boxShadow = "inset 0 0 100px rgba(14, 165, 233, 1)";
-        setTimeout(() => {
-          scannerBox.style.boxShadow = "inset 0 0 30px rgba(0,0,0,0.8)";
-        }, 60);
-      }
-
-      function triggerErrorFeedback() {
-        if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-        if (audioCtx) {
-          try {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.type = "sawtooth";
-            osc.frequency.setValueAtTime(300, audioCtx.currentTime);
-            gain.gain.setValueAtTime(0, audioCtx.currentTime);
-            gain.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.01);
-            gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.15);
-            osc.start(audioCtx.currentTime);
-            osc.stop(audioCtx.currentTime + 0.15);
-          } catch (e) {}
-        }
-        const scannerBox = document.getElementById("scannerBox");
-        scannerBox.style.boxShadow = "inset 0 0 100px rgba(239, 68, 68, 1)";
-        setTimeout(() => {
-          scannerBox.style.boxShadow = "inset 0 0 30px rgba(0,0,0,0.8)";
-        }, 150);
-      }
-
-      function inputManual() {
-        const val = document.getElementById("manualData").value.trim();
-        if (!val)
-          return Toast.fire({
-            icon: "error",
-            title: "Kode tidak boleh kosong!",
-          });
-
-        if (scannedCodesSet.has(val)) {
-          triggerErrorFeedback();
-          return Toast.fire({
-            icon: "error",
-            title: "DITOLAK: Barcode telah tersimpan!",
-          });
-        }
-
-        const parsed = parsePayloadToFields(val);
-
-        if (parsed.panjang === "-") {
-          Swal.fire({
-            title: 'Isi Dimensi Barang Manual',
-            html:
-              '<div style="text-align:left; font-size:0.85rem; font-weight:700; color:#64748b; margin-bottom:5px;">PANJANG</div>' +
-              '<input id="swal-panjang" type="number" class="swal2-input" style="margin-top:0; margin-bottom:15px; width:80%;" placeholder="Contoh: 100">' +
-              '<div style="text-align:left; font-size:0.85rem; font-weight:700; color:#64748b; margin-bottom:5px;">LEBAR</div>' +
-              '<input id="swal-lebar" type="number" step="any" class="swal2-input" style="margin-top:0; margin-bottom:15px; width:80%;" placeholder="Contoh: 20.5">' +
-              '<div style="text-align:left; font-size:0.85rem; font-weight:700; color:#64748b; margin-bottom:5px;">POTONGAN</div>' +
-              '<input id="swal-potongan" type="number" class="swal2-input" style="margin-top:0; margin-bottom:15px; width:80%;" placeholder="Contoh: 4">' +
-              '<div style="text-align:left; font-size:0.85rem; font-weight:700; color:#64748b; margin-bottom:5px;">GOLONGAN</div>' +
-              '<input id="swal-golongan" type="text" class="swal2-input" style="margin-top:0; width:80%;" placeholder="Contoh: A">',
-            focusConfirm: false,
-            showCancelButton: true,
-            confirmButtonText: 'Simpan',
-            cancelButtonText: 'Batal',
-            preConfirm: () => {
-              const p = parseInt(document.getElementById('swal-panjang').value, 10);
-              const l = parseFloat(document.getElementById('swal-lebar').value);
-              const pot = parseInt(document.getElementById('swal-potongan').value, 10);
-              const gol = document.getElementById('swal-golongan').value.trim() || "-";
-
-              if (isNaN(p) || isNaN(l) || isNaN(pot)) {
-                Swal.showValidationMessage('Semua kolom dimensi angka wajib diisi!');
-                return false;
-              }
-              
-              const m2 = (p * l * pot) / 10000;
-              return { panjang: p, lebar: l, potongan: pot, persegi: m2.toFixed(2), golongan: gol };
-            }
-          }).then((result) => {
-            if (result.isConfirmed) {
-              scannedCodesSet.add(val);
-              simpanDataEksplisit(val, "MANUAL_ENTRY", result.value);
-              document.getElementById("manualData").value = "";
-            }
-          });
-        } else {
-          scannedCodesSet.add(val);
-          simpanData(val, "MANUAL_ENTRY");
-          document.getElementById("manualData").value = "";
-        }
-      }
-
-      function simpanDataEksplisit(kode, barcodeFormat, customFields) {
-        const nowDate = new Date();
-        const nowMs = Date.now();
-        const tglHariIni = new Date(nowDate.getTime() - nowDate.getTimezoneOffset() * 60000)
-          .toISOString().split("T")[0];
-
-        const newData = {
-          id: Date.now(),
-          scannedAt: nowMs,
-          kode: kode,
-          panjang: customFields.panjang,
-          lebar: customFields.lebar,
-          potongan: customFields.potongan,
-          persegi: customFields.persegi,
-          tanggal: tglHariIni,
-          jam: nowDate.toTimeString().split(" ")[0],
-          golongan: customFields.golongan,
-          format: barcodeFormat,
-        };
-
-        allData.push(newData);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(allData));
-
-        triggerFeedback();
-        Toast.fire({ icon: "success", title: `SUCCESS: Tersimpan` });
-        renderData(true);
-      }
-
-      function simpanData(kode, barcodeFormat) {
-        const nowDate = new Date();
-        const nowMs = Date.now();
-        const tglHariIni = new Date(nowDate.getTime() - nowDate.getTimezoneOffset() * 60000)
-          .toISOString().split("T")[0];
-
-        const parsed = parsePayloadToFields(kode);
-
-        const newData = {
-          id: Date.now(),
-          scannedAt: nowMs,
-          kode: kode,
-          panjang: parsed?.panjang ?? "-",
-          lebar: parsed?.lebar ?? "-",
-          potongan: parsed?.potongan ?? "-",
-          persegi: parsed?.persegi ?? "-",
-          tanggal: tglHariIni,
-          jam: nowDate.toTimeString().split(" ")[0],
-          golongan: parsed?.golongan ?? "-",
-          format: barcodeFormat,
-        };
-
-        allData.push(newData);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(allData));
-
-        triggerFeedback();
-        Toast.fire({ icon: "success", title: `SUCCESS: Tersimpan` });
-        renderData(true);
-      }
-
-      // Sisa fungsi JavaScript seperti renderData(), downloadExcel() dll dapat diletakkan di bawah ini seperti fungsi aslinya.
-    </script>
-  </body>
+// ════════════════════════════════════════
+//  EXPORT
+// ════════════════════════════════════════
+function downloadExcelHarian(){
+  const nowDate=new Date();
+  const hariIni=new Date(nowDate.getTime()-nowDate.getTimezoneOffset()*60000).toISOString().split("T")[0];
+  const data=allData.filter(i=>i.tanggal===hariIni);
+  if(!data.length) return Swal.fire("Kosong","Tidak ada data hari ini.","info");
+  exportToExcel(data,"Harian_"+hariIni);
+}
+function downloadExcelSemua(){
+  if(!allData.length) return Swal.fire("Kosong","Database kosong.","info");
+  exportToExcel(allData,"Master_Data");
+}
+function exportToExcel(dataArray,label){
+  const sorted=[...dataArray].sort((a,b)=>(a.scannedAt||0)-(b.scannedAt||0));
+  const dt=sorted.map((i,idx)=>({
+    "No":idx+1,"Kode Barcode":i.kode,
+    "Panjang":i.panjang,"Lebar":i.lebar,"Potongan":i.potongan,
+    "Persegi (m²)":i.persegi,"Golongan":i.golongan,
+    "Tanggal":formatTgl(i.tanggal),"Jam":i.jam,"Format Scan":i.format||""
+  }));
+  const ws=XLSX.utils.json_to_sheet(dt);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,"Database");
+  XLSX.writeFile(wb,`Export_SCM_${label}_${Date.now()}.xlsx`);
+}
+</script>
+</body>
 </html>
-
-```
