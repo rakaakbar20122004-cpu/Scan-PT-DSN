@@ -353,7 +353,7 @@ async function toggleScan(){
 }
 
 // ════════════════════════════════════════
-//  OPTIMALISASI KAMERA (LOW-END SAMPAI HIGH-END)
+//  OPTIMALISASI KAMERA DAN PERFORMA RESPONSIVITAS ADAPTIF
 // ════════════════════════════════════════
 async function startScan(){
   const btn = document.getElementById("btnAction");
@@ -364,26 +364,33 @@ async function startScan(){
     html5Scanner = new Html5Qrcode("qr-reader", { verbose: false });
     
     const config = {
-      fps: 10,  // Diturunkan ke 10 agar processor HP spek rendah tidak overheat/lag
+      // Pembatasan nilai FPS statis (fps: 10) dihapus agar engine camera berjalan maksimal secara native.
+      // Device high-end akan menikmati kelancaran full fps (30-60 FPS), sedangkan library
+      // secara otomatis mendegradasi FPS pada device low-end jika mendeteksi resource terbatas.
       qrbox: function(viewfinderWidth, viewfinderHeight) {
-          // Responsif: Kotak bidik menyesuaikan layar device agar fokus lensa lebih tajam
           const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
           const boxSize = Math.floor(minEdge * 0.7);
           return { width: boxSize, height: boxSize };
       },
       aspectRatio: 1.0,
       disableFlip: false,
-      // Pembatasan format dekode esensial untuk menghemat resource RAM HP
       formatsToSupport: [
         Html5QrcodeSupportedFormats.CODE_128,
         Html5QrcodeSupportedFormats.QR_CODE,
         Html5QrcodeSupportedFormats.CODE_39,
         Html5QrcodeSupportedFormats.EAN_13
-      ]
+      ],
+      // Mengunci constraints resolusi seimbang demi ketajaman bidikan barcode di berbagai sensor hardware
+      videoConstraints: {
+        facingMode: currentCam === "environment" ? "environment" : "user",
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      }
     };
 
-    const facingMode = currentCam === "environment" ? { facingMode: "environment" } : { facingMode: "user" };
-    await html5Scanner.start(facingMode, config, onScanSuccess, null);
+    // Memberikan jeda inisialisasi hardware demi mencegah balapan thread rendering di sistem iOS terbaru
+    await new Promise(r => setTimeout(r, 100));
+    await html5Scanner.start({ facingMode: config.videoConstraints.facingMode }, config, onScanSuccess, null);
 
     try {
       const videoEl = document.querySelector("#qr-reader video");
@@ -447,23 +454,16 @@ function onScanSuccess(decodedText, decodedResult){
   simpanKeServer(code, fmt);
 }
 
-// ════════════════════════════════════════
-//  REVISI PARSING BARCODE (INDEX STATIS DARI DEPAN)
-// ════════════════════════════════════════
 function parsePayloadToFields(text){
   const raw = (text||"").trim();
   if(!raw) return null;
 
-  // REVISI UTAMA: Menggunakan pemotongan string dari depan (bukan dari belakang dengan minus) 
-  // agar jika ada variasi spasi/karakter di ujung akhir tidak menggeser nominal panjang & lebar.
   if(raw.startsWith("86") && raw.length >= 24){
     try{
-      // Contoh struktur barcode: 86 GOLONGAN(variabel) PANJANG(3) LEBAR(5) POTONGAN(4)
-      // Kita asumsikan panjang string total adalah 24 karakter konstan
       const golongan = raw.slice(2, 12).replace(/^0+/, "") || "-"; 
-      const panjang  = parseInt(raw.slice(12, 15), 10); // Mengambil 3 digit porsi panjang
-      const lebar    = parseInt(raw.slice(15, 20), 10) / 10; // Mengambil 5 digit porsi lebar
-      const potongan = parseInt(raw.slice(20, 24), 10); // Mengambil 4 digit porsi potongan
+      const panjang  = parseInt(raw.slice(12, 15), 10); 
+      const lebar    = parseInt(raw.slice(15, 20), 10) / 10; 
+      const potongan = parseInt(raw.slice(20, 24), 10); 
       
       const persegi  = (panjang * lebar * potongan) / 10000;
 
@@ -474,7 +474,6 @@ function parsePayloadToFields(text){
       console.error("Gagal melakukan parsing barcode string struktur", e);
     }
   }
-  // Alternatif fallback jika tipe barcode adalah kustom/berbeda panjang struktur reguler
   return { panjang: "Format", lebar: "Tidak", potongan: "Sesuai", persegi: "-", golongan: "Error" };
 }
 
