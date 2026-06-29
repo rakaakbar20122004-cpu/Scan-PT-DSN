@@ -366,9 +366,9 @@
             const potongan = parseInt(p_str, 10);
             const persegi = (p_indo * l_indo * potongan) / 10000;
 
-            // Logika menggabungkan "Golongan (KODE)"
+            // Logika menggabungkan "Golongan (KODE)" dengan padding 3 digit utuh
             const extNum = parseInt(ext_str, 10);
-            const golonganDisplay = !isNaN(extNum) ? `${golongan} (${extNum.toString().padStart(3, '0')})` : golongan;
+            const golonganDisplay = !isNaN(extNum) ? `${golongan} (${ext_str})` : golongan;
 
             if (!isNaN(p_indo) && !isNaN(l_indo) && !isNaN(potongan)) {
               return {
@@ -376,7 +376,7 @@
                 lebar: l_indo,
                 potongan: potongan,
                 persegi: persegi.toFixed(2),
-                golongan: golonganDisplay // PASTI TAMPIL SEPERTI: 21270A (085)
+                golongan: golonganDisplay // Tampil Sempurna: 21270A (085)
               };
             }
           } catch (e) {}
