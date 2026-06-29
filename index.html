@@ -175,7 +175,7 @@
               <div class="scanner-placeholder" id="placeholderMsg">
                 <i class="fas fa-video-slash"></i><span>Kamera Offline</span>
               </div>
-              <video id="videoElement" autoplay playsinline muted></video>
+              <video id="videoElement" autoplay playsinline webkit-playsinline muted></video>
               <div class="targeting-box" id="targetBox"></div>
               <div class="laser-overlay" id="laser"></div>
             </div>
@@ -262,7 +262,7 @@
       <a class="nav-item active" onclick="switchPage('view-scan', this)"><i class="fas fa-qrcode"></i><span>Scan</span></a>
       <a class="nav-item" onclick="switchPage('view-session', this)"><i class="fas fa-clipboard-check"></i><span>Hari Ini</span></a>
       <a class="nav-item" onclick="switchPage('view-database', this)"><i class="fas fa-server"></i><span>Database</span></a>
-      <a class="nav-item" onclick="switchPage('view-export', this)"><i class="fas fa-download"></i><span>Export</span></a>
+      <a class="nav-item" onclick="switchPage('view-download', this)"><i class="fas fa-download"></i><span>Export</span></a>
     </nav>
 
     <script>
@@ -301,10 +301,14 @@
         if (pageId !== "view-scan" && isScanning) toggleScan();
         document.querySelectorAll(".view-page").forEach((page) => page.classList.remove("active"));
         document.querySelectorAll(".nav-item").forEach((item) => item.classList.remove("active"));
-        document.getElementById(pageId).classList.add("active");
+        
+        let targetId = pageId;
+        if (pageId === "view-download") targetId = "view-export";
+        
+        document.getElementById(targetId).classList.add("active");
         navElement.classList.add("active");
-        if (pageId === "view-session") renderToday();
-        if (pageId === "view-database") renderDatabase();
+        if (targetId === "view-session") renderToday();
+        if (targetId === "view-database") renderDatabase();
       }
 
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
@@ -343,20 +347,17 @@
         if (audioCtx.state === "suspended") audioCtx.resume();
       }
 
-      // =========================================================================
-      // KODE PARSING DIKUNCI: Menampilkan kode 3 digit persis seperti permintaan!
-      // =========================================================================
       function parsePayloadToFields(text) {
         const raw = (text || "").trim();
         if (!raw) return null;
 
         if (raw.startsWith("86") && raw.length >= 24) {
           try {
-            const p_str = raw.slice(-4);         // Potongan
-            const w_str = raw.slice(-9, -4);     // Lebar
-            const l_str = raw.slice(-12, -9);    // Panjang
-            const ext_str = raw.slice(-16, -12); // KODE 3 DIGIT (117, 085, dll)
-            const prefix = raw.slice(2, -16);    // Golongan
+            const p_str = raw.slice(-4);         
+            const w_str = raw.slice(-9, -4);     
+            const l_str = raw.slice(-12, -9);    
+            const ext_str = raw.slice(-16, -12); 
+            const prefix = raw.slice(2, -16);    
 
             let golongan = prefix.replace(/^0+/, "");
             if (!golongan) golongan = "-";
@@ -366,7 +367,6 @@
             const potongan = parseInt(p_str, 10);
             const persegi = (p_indo * l_indo * potongan) / 10000;
 
-            // Logika menggabungkan "Golongan (KODE)" dengan padding 3 digit utuh
             const extNum = parseInt(ext_str, 10);
             const golonganDisplay = !isNaN(extNum) ? `${golongan} (${ext_str})` : golongan;
 
@@ -376,7 +376,7 @@
                 lebar: l_indo,
                 potongan: potongan,
                 persegi: persegi.toFixed(2),
-                golongan: golonganDisplay // Tampil Sempurna: 21270A (085)
+                golongan: golonganDisplay 
               };
             }
           } catch (e) {}
@@ -419,20 +419,53 @@
             btn.innerHTML = '<i class="fas fa-stop" style="margin-right: 6px;"></i> STOP'; btn.classList.add("stop");
             isScanning = true;
             
-            let constraints = { video: { facingMode: currentCam, width: { ideal: 1080 }, height: { ideal: 1080 } } };
+            let constraints = { 
+              video: { 
+                facingMode: currentCam,
+                width: { min: 640, ideal: 1280, max: 1920 },
+                height: { min: 480, ideal: 720, max: 1080 },
+                aspectRatio: { ideal: 1.0 },
+                frameRate: { ideal: 30 }
+              } 
+            };
             
             let stream;
             try {
                 let advConstraints = JSON.parse(JSON.stringify(constraints));
-                if (!isIOS) advConstraints.video.advanced = [{ focusMode: "continuous" }];
+                if (!isIOS) {
+                  advConstraints.video.advanced = [{ focusMode: "continuous" }];
+                }
                 stream = await navigator.mediaDevices.getUserMedia(advConstraints);
             } catch(e) {
-                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: currentCam } });
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                  video: { 
+                    facingMode: currentCam,
+                    width: 1280,
+                    height: 720
+                  } 
+                });
             }
 
             video.srcObject = stream;
             streamTrack = stream.getVideoTracks()[0];
+            
+            video.setAttribute("playsinline", true);
+            video.setAttribute("webkit-playsinline", true);
+            
             await video.play();
+
+            if (streamTrack && typeof streamTrack.getCapabilities === "function") {
+              try {
+                const capabilities = streamTrack.getCapabilities();
+                let constraintsUpdate = {};
+                if (capabilities.focusMode && capabilities.focusMode.includes("continuous")) {
+                  constraintsUpdate.focusMode = "continuous";
+                }
+                if (Object.keys(constraintsUpdate).length > 0) {
+                  await streamTrack.applyConstraints({ advanced: [constraintsUpdate] });
+                }
+              } catch (e) { console.log("Fokus otomatis advanced dilewati."); }
+            }
 
             if (nativeDetector) {
               const detectLoop = async () => {
@@ -446,13 +479,13 @@
               scanLoopFrame = requestAnimationFrame(detectLoop);
             } else {
               zxingReader = new ZXing.BrowserMultiFormatReader(getZXingHints());
-              zxingReader.timeBetweenDecodingAttempts = 0;
+              zxingReader.timeBetweenDecodingAttempts = 35; 
               zxingReader.decodeFromStream(stream, "videoElement", (result, err) => {
                 if (result) processBarcodeDetected(result.getText(), result.getBarcodeFormat ? result.getBarcodeFormat().toString() : "UNKNOWN");
               });
             }
           } catch (err) {
-            Swal.fire("Error", "Kamera gagal dimuat. Pastikan izin aktif dan link menggunakan HTTPS.", "error");
+            Swal.fire("Error", "Kamera gagal dimuat. Pastikan izin aktif dan koneksi menggunakan HTTPS aman.", "error");
             toggleScan();
           }
         }
