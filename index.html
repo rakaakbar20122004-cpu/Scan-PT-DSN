@@ -200,11 +200,7 @@
     </div>
     <div class="card">
       <div class="card-header hdr-b2"><i class="fas fa-list-ul"></i>Data Scan - Barcode 2</div>
-      <div class="table-wrapper"><table><thead><tr><th>No</th><th>Kode</th><th>Golongan</th><th>Panjang</th><th>Lebar</th><th>Potongan</th><th>M²</th><th>Jam</th><th>Aksi</th></tr></thead><tbody id="tableToday2"></tbody></table></div>
-    </div>
-    <div class="card">
-      <div class="card-header hdr-b3"><i class="fas fa-list-ul"></i>Data Scan - Barcode 3</div>
-      <div class="table-wrapper"><table><thead><tr><th>No</th><th>Kode</th><th>Golongan</th><th>Panjang</th><th>Lebar</th><th>Potongan</th><th>M²</th><th>Jam</th><th>Aksi</th></tr></thead><tbody id="tableToday3"></tbody></table></div>
+      <div class="table-wrapper"><table><thead><tr><th>No</th><th>Kode</th><th>Golongan</th><th>Panjang</th><th>Lebar</th><th>PCS</th><th>M²</th><th>Jam</th><th>Aksi</th></tr></thead><tbody id="tableToday2"></tbody></table></div>
     </div>
   </div>
 
@@ -224,11 +220,7 @@
     </div>
     <div class="card">
       <div class="card-header hdr-b2"><i class="fas fa-archive"></i>Database - Barcode 2</div>
-      <div class="table-wrapper"><table><thead><tr><th>No</th><th>Kode</th><th>Golongan</th><th>Panjang</th><th>Lebar</th><th>Potongan</th><th>M²</th><th>Tgl</th><th>Jam</th><th>Aksi</th></tr></thead><tbody id="tableDb2"></tbody></table></div>
-    </div>
-    <div class="card">
-      <div class="card-header hdr-b3"><i class="fas fa-archive"></i>Database - Barcode 3</div>
-      <div class="table-wrapper"><table><thead><tr><th>No</th><th>Kode</th><th>Golongan</th><th>Panjang</th><th>Lebar</th><th>Potongan</th><th>M²</th><th>Tgl</th><th>Jam</th><th>Aksi</th></tr></thead><tbody id="tableDb3"></tbody></table></div>
+      <div class="table-wrapper"><table><thead><tr><th>No</th><th>Kode</th><th>Golongan</th><th>Panjang</th><th>Lebar</th><th>PCS</th><th>M²</th><th>Tgl</th><th>Jam</th><th>Aksi</th></tr></thead><tbody id="tableDb2"></tbody></table></div>
     </div>
   </div>
 
@@ -280,7 +272,7 @@ let decodeTimer  = null;   // setInterval untuk ZXing polling
 let nativeRafId  = null;   // rAF id untuk Native loop
 let zxingReader  = null;
 let lastScanTime = 0;
-const SCAN_GAP   = 600;    // ms antar deteksi sukses
+const SCAN_GAP   = 400;    // ms antar deteksi sukses — lebih pendek = lebih responsif
 
 const video      = document.getElementById("videoElement");
 const snapCanvas = document.getElementById("snapCanvas");
@@ -534,14 +526,15 @@ function startNativeLoop(){
 // ══════════════════════════════════════════
 //  ZXING LOOP (iOS + Android non-Chrome)
 //
-//  KUNCI PERFORMA iOS:
-//  - Interval 60ms = ~16fps decode
-//  - Snapshot hanya bagian tengah frame (zona barcode)
-//    sehingga resolusi per-pixel ZXing analisa lebih tinggi
-//  - TRY_HARDER = true → cocok untuk barcode fisik agak miring/buram
+//  STRATEGI MULTI-PASS untuk barcode buram/kurang jelas:
+//  Pass 1 — Crop tengah (zona paling tajam, decode cepat)
+//  Pass 2 — Full frame (kalau pass 1 gagal, coba seluruh frame)
+//  Pass 3 — Crop tengah + contrast boost (untuk barcode pudar/buram)
+//  Interval 30ms ≈ ~30fps decode — secepat mungkin tanpa freeze UI
 // ══════════════════════════════════════════
 function startZXingLoop(){
   if (!zxingReader) zxingReader = new ZXing.BrowserMultiFormatReader(getZXingHints());
+  let passCounter = 0; // rotasi antar pass setiap tick
 
   decodeTimer = setInterval(()=>{
     if (!isScanning) return;
@@ -552,18 +545,39 @@ function startZXingLoop(){
 
     const vw = video.videoWidth;
     const vh = video.videoHeight;
+    passCounter = (passCounter + 1) % 3;
 
-    // ── CROP ZONA TENGAH (40% tengah dari lebar, 40% tengah dari tinggi) ──
-    // Ini meningkatkan resolusi efektif ZXing pada area barcode
-    // dan mengurangi noise dari background
-    const cropW = Math.floor(vw * 0.9);   // 90% lebar (barcode bisa panjang)
-    const cropH = Math.floor(vh * 0.40);  // 40% tinggi (zona tengah)
-    const cropX = Math.floor((vw - cropW) / 2);
-    const cropY = Math.floor((vh - cropH) / 2);
+    let cropW, cropH, cropX, cropY, useBoost = false;
+
+    if (passCounter === 0) {
+      // Pass 1: Crop tengah 90%×40% — decode paling cepat
+      cropW = Math.floor(vw * 0.9);
+      cropH = Math.floor(vh * 0.40);
+      cropX = Math.floor((vw - cropW) / 2);
+      cropY = Math.floor((vh - cropH) / 2);
+    } else if (passCounter === 1) {
+      // Pass 2: Full frame — tangkap barcode meski agak di tepi
+      cropW = vw; cropH = vh; cropX = 0; cropY = 0;
+    } else {
+      // Pass 3: Crop tengah + contrast boost — untuk barcode buram/pudar
+      cropW = Math.floor(vw * 0.9);
+      cropH = Math.floor(vh * 0.45);
+      cropX = Math.floor((vw - cropW) / 2);
+      cropY = Math.floor((vh - cropH) / 2);
+      useBoost = true;
+    }
 
     snapCanvas.width  = cropW;
     snapCanvas.height = cropH;
-    snap2d.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+
+    if (useBoost) {
+      // Boost contrast & brightness via CSS filter sebelum drawImage
+      snap2d.filter = "contrast(1.6) brightness(1.15)";
+      snap2d.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+      snap2d.filter = "none";
+    } else {
+      snap2d.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+    }
 
     try {
       const imgData = snap2d.getImageData(0, 0, cropW, cropH);
@@ -578,7 +592,7 @@ function startZXingLoop(){
     } catch(_){
       // NotFoundException = normal, tidak ada barcode di frame ini
     }
-  }, 60); // 60ms ≈ ~16fps — cukup responsif tanpa membebani CPU iOS
+  }, 30); // 30ms ≈ ~30fps decode — sangat responsif
 }
 
 // ══════════════════════════════════════════
@@ -810,7 +824,7 @@ function createTableRows(dataArray,tableIdStr){
 function renderToday(){
   const nowDate=new Date();
   const hariIni=new Date(nowDate.getTime()-nowDate.getTimezoneOffset()*60000).toISOString().split("T")[0];
-  ["Barcode 1","Barcode 2","Barcode 3"].forEach((jenis,i)=>{
+  ["Barcode 1","Barcode 2"].forEach((jenis,i)=>{
     const d=allData.filter(x=>x.tanggal===hariIni&&x.jenis===jenis).sort((a,b)=>b.scannedAt-a.scannedAt);
     createTableRows(d,`tableToday${i+1}`);
   });
@@ -826,7 +840,7 @@ function renderDatabase(){
     if(search&&!i.kode.toLowerCase().includes(search)&&!i.golongan.toLowerCase().includes(search)) return false;
     return true;
   });
-  ["Barcode 1","Barcode 2","Barcode 3"].forEach((jenis,i)=>{
+  ["Barcode 1","Barcode 2"].forEach((jenis,i)=>{
     const d=filtered.filter(x=>x.jenis===jenis).sort((a,b)=>b.scannedAt-a.scannedAt);
     createTableRows(d,`tableDb${i+1}`);
   });
@@ -880,10 +894,16 @@ function downloadExcelSemua(){
 }
 function exportToExcel(dataArray,label){
   const wb=XLSX.utils.book_new();
-  ["Barcode 1","Barcode 2","Barcode 3"].forEach(type=>{
+  ["Barcode 1","Barcode 2"].forEach(type=>{
     const td=dataArray.filter(i=>i.jenis===type).sort((a,b)=>a.scannedAt-b.scannedAt);
     if(!td.length) return;
-    const dt=td.map((i,idx)=>({No:idx+1,"Kode Barcode":i.kode,Golongan:i.golongan,Panjang:i.panjang,Lebar:i.lebar,Potongan:i.potongan,"Persegi (m2)":i.persegi,Tanggal:formatTgl(i.tanggal),Jam:i.jam}));
+    const isB2 = type==="Barcode 2";
+    const dt=td.map((i,idx)=>({
+      No:idx+1,"Kode Barcode":i.kode,Golongan:i.golongan,
+      Panjang:i.panjang,Lebar:i.lebar,
+      [isB2?"PCS":"Potongan"]:i.potongan,
+      "Persegi (m2)":i.persegi,Tanggal:formatTgl(i.tanggal),Jam:i.jam
+    }));
     XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(dt),type);
   });
   XLSX.writeFile(wb,`Export_SCM_${label}_${Date.now()}.xlsx`);
@@ -904,8 +924,8 @@ function exportToPDF(dataArray,label){
   const doc=new jsPDF("p","pt","a4");
   doc.setFontSize(14);doc.text("Laporan Data Scan - PT. Daya Sakti Niaga",40,40);
   doc.setFontSize(10);doc.setTextColor(100);doc.text(`Tipe: ${label.replace(/_/g," ")}`,40,55);
-  const rows=dataArray.sort((a,b)=>(a.jenis||"").localeCompare(b.jenis||"")).map((i,idx)=>[idx+1,i.jenis,i.kode,i.golongan,i.panjang,i.lebar,i.potongan,i.persegi,formatTgl(i.tanggal)]);
-  doc.autoTable({head:[["No","Jenis","Kode","Gol","P","L","Pot","M2","Tanggal"]],body:rows,startY:70,styles:{fontSize:8},headStyles:{fillColor:[139,92,246]}});
+  const rows=dataArray.filter(i=>i.jenis!=="Barcode 3").sort((a,b)=>(a.jenis||"").localeCompare(b.jenis||"")).map((i,idx)=>[idx+1,i.jenis,i.kode,i.golongan,i.panjang,i.lebar,i.potongan,i.persegi,formatTgl(i.tanggal)]);
+  doc.autoTable({head:[["No","Jenis","Kode","Gol","P","L","Pot/PCS","M2","Tanggal"]],body:rows,startY:70,styles:{fontSize:8},headStyles:{fillColor:[139,92,246]}});
   doc.save(`Export_SCM_${label}_${Date.now()}.pdf`);
 }
 </script>
