@@ -57,7 +57,7 @@
     .scanner-wrapper{position:relative;margin-bottom:28px;}
     .scanner-container{position:relative;width:100%;border-radius:var(--radius-md);overflow:hidden;background-color:#000;aspect-ratio:3/4;max-height:60vh;display:flex;align-items:center;justify-content:center;border:2px solid rgba(139,92,246,0.3);box-shadow:0 0 30px rgba(139,92,246,0.15);}
     #videoElement{width:100%;height:100%;object-fit:cover;display:none;}
-    .targeting-box{position:absolute;top:35%;left:5%;right:5%;bottom:35%;border-radius:12px;pointer-events:none;z-index:5;box-shadow:0 0 0 4000px rgba(0,0,0,0.65);display:none;}
+    .targeting-box{position:absolute;top:35%;left:5%;right:5%;bottom:35%;border-radius:12px;pointer-events:none;z-index:5;box-shadow:0 0 0 4000px rgba(0,0,0,0.65);display:none;transition:border-color 0.2s ease;}
     .targeting-box::before,.targeting-box::after{content:"";position:absolute;width:45px;height:45px;border-color:var(--accent);border-style:solid;filter:drop-shadow(0 0 8px var(--accent));}
     .targeting-box::before{top:-2px;left:-2px;border-width:4px 0 0 4px;border-top-left-radius:12px;}
     .targeting-box::after{bottom:-2px;right:-2px;border-width:0 4px 4px 0;border-bottom-right-radius:12px;}
@@ -95,6 +95,7 @@
     .btn-export-big.excel{background:linear-gradient(135deg,rgba(16,185,129,0.2),rgba(16,185,129,0.05));border-color:rgba(16,185,129,0.3);color:#34d399;}
     .btn-export-big.pdf{background:linear-gradient(135deg,rgba(239,68,68,0.2),rgba(239,68,68,0.05));border-color:rgba(239,68,68,0.3);color:#fca5a5;}
     .btn-export-big.blue{background:linear-gradient(135deg,rgba(59,130,246,0.2),rgba(59,130,246,0.05));border-color:rgba(59,130,246,0.3);color:#60a5fa;}
+    .btn-export-big.wa{background:linear-gradient(135deg,rgba(37,211,102,0.2),rgba(37,211,102,0.05));border-color:rgba(37,211,102,0.3);color:#25d366;}
     .btn-danger-zone{background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.4);color:#fca5a5;margin-top:10px;}
 
     .filter-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
@@ -196,16 +197,26 @@
     <div class="card">
       <div class="card-header"><i class="fas fa-file-export"></i>Pusat Unduhan Laporan</div>
       <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:24px;">Laporan Excel akan memisahkan data Barcode 1 dan 2 ke Sheet yang berbeda secara otomatis.</p>
+      
       <label style="display:block;font-size:0.75rem;font-weight:700;color:var(--text-secondary);margin-bottom:12px;text-transform:uppercase;">Export Khusus Hari Ini</label>
       <div class="export-grid">
         <button class="btn btn-export-big excel" onclick="downloadExcelHarian()"><i class="fas fa-file-excel"></i><div><strong>Excel Hari Ini</strong></div></button>
         <button class="btn btn-export-big pdf" onclick="downloadPDFHarian()"><i class="fas fa-file-pdf"></i><div><strong>PDF Hari Ini</strong></div></button>
       </div>
+
       <label style="display:block;font-size:0.75rem;font-weight:700;color:var(--text-secondary);margin-bottom:12px;text-transform:uppercase;">Export Master Database</label>
       <div class="export-grid">
         <button class="btn btn-export-big blue" onclick="downloadExcelSemua()"><i class="fas fa-archive"></i><div><strong>Master Excel</strong></div></button>
         <button class="btn btn-export-big pdf" onclick="downloadPDFSemua()"><i class="fas fa-file-pdf"></i><div><strong>Master PDF</strong></div></button>
       </div>
+
+      <!-- FITUR SHARE WHATSAPP -->
+      <label style="display:block;font-size:0.75rem;font-weight:700;color:var(--text-secondary);margin-bottom:12px;text-transform:uppercase;">Bagikan Laporan</label>
+      <div class="export-grid">
+        <button class="btn btn-export-big wa" onclick="shareWAHariIni()"><i class="fab fa-whatsapp"></i><div><strong>Share WA Hari Ini</strong></div></button>
+        <button class="btn btn-export-big wa" onclick="shareWASemua()"><i class="fab fa-whatsapp"></i><div><strong>Share WA Master</strong></div></button>
+      </div>
+
       <hr style="border-color:rgba(255,255,255,0.05);margin:24px 0"/>
       <h4 style="margin-bottom:12px;font-size:0.85rem;color:var(--danger);text-transform:uppercase;">Zona Berbahaya</h4>
       <button class="btn btn-export-big btn-danger-zone" onclick="hapusSemuaData()"><i class="fas fa-triangle-exclamation"></i><div><strong>Reset Total Memori Aplikasi</strong></div></button>
@@ -222,23 +233,22 @@
 </nav>
 
 <script>
-// ══════════════════════════════════════════
-//  STORAGE
-// ══════════════════════════════════════════
+// STORAGE
 const STORAGE_KEY = "SCMBarcodeMasterData";
 let allData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
 let scannedCodesSet = new Set(allData.map(i => i.kode));
 
-// ══════════════════════════════════════════
-//  SCANNER STATE — sama persis seperti versi yang terbukti jalan
-// ══════════════════════════════════════════
-let isScanning   = false;
-let currentCam   = "environment";
-let lastErrorTime = 0;
-let isTorchOn    = false;
-let streamTrack  = null;
+// SCANNER STATE
+let isScanning    = false;
+let currentCam    = "environment";
+let lastErrorTime  = 0;
+let isTorchOn     = false;
+let streamTrack   = null;
 let scanLoopFrame = null;
-let audioCtx     = null;
+let audioCtx       = null;
+let zxingReader   = null;
+let canvasCanvas  = null;
+let canvasCtx     = null;
 
 const video = document.getElementById("videoElement");
 
@@ -247,37 +257,22 @@ const Toast = Swal.mixin({
   timer:2000, background:"rgba(15,23,42,0.95)", color:"#fff"
 });
 
-// ══════════════════════════════════════════
-//  DEVICE DETECTION
-// ══════════════════════════════════════════
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+// DETEKSI HARDWARE DETECTOR (UNTUK CHROME ANDROID JIKA TERSEDIA)
 const hasNativeScanner = "BarcodeDetector" in window;
 let nativeDetector = null;
-let zxingReader = null;
 
-if (hasNativeScanner && !isIOS) {
-  document.getElementById("engineBadge").innerText = "HW ACCEL";
-  nativeDetector = new BarcodeDetector({
-    formats: ["code_128","code_39","code_93","ean_13","ean_8","upc_a","upc_e","itf","codabar"]
-  });
-} else {
-  document.getElementById("engineBadge").innerText = isIOS ? "IOS PRO" : "SW MODE";
-}
-
-function getZXingHints() {
+if (hasNativeScanner) {
   try {
-    return new Map([
-      [ZXing.DecodeHintType.TRY_HARDER, true],
-      [ZXing.DecodeHintType.POSSIBLE_FORMATS, [
-        ZXing.BarcodeFormat.CODE_128,
-        ZXing.BarcodeFormat.CODE_39,
-        ZXing.BarcodeFormat.ITF,
-        ZXing.BarcodeFormat.EAN_13,
-        ZXing.BarcodeFormat.UPC_A,
-      ]],
-    ]);
-  } catch(e){ return undefined; }
+    nativeDetector = new BarcodeDetector({
+      formats: ["code_128","code_39","code_93","ean_13","ean_8","upc_a","upc_e","itf","codabar"]
+    });
+    document.getElementById("engineBadge").innerText = "HW ACCEL";
+  } catch(e) {
+    nativeDetector = null;
+    document.getElementById("engineBadge").innerText = "HYBRID MODE";
+  }
+} else {
+  document.getElementById("engineBadge").innerText = "HYBRID MODE";
 }
 
 function initAudio() {
@@ -285,9 +280,7 @@ function initAudio() {
   if (audioCtx.state === "suspended") audioCtx.resume();
 }
 
-// ══════════════════════════════════════════
-//  PULL TO REFRESH
-// ══════════════════════════════════════════
+// PULL TO REFRESH
 let touchStartY = 0;
 const pullIndicator = document.getElementById("pullIndicator");
 window.addEventListener("touchstart", e => {
@@ -307,9 +300,7 @@ window.addEventListener("touchmove", e => {
 }, {passive:true});
 window.addEventListener("touchend", () => pullIndicator.style.opacity = "0");
 
-// ══════════════════════════════════════════
-//  PAGE NAV
-// ══════════════════════════════════════════
+// PAGE NAV
 function switchPage(pageId, el) {
   if (pageId !== "view-scan" && isScanning) toggleScan();
   document.querySelectorAll(".view-page").forEach(p => p.classList.remove("active"));
@@ -320,9 +311,7 @@ function switchPage(pageId, el) {
   if (pageId === "view-database") renderDatabase();
 }
 
-// ══════════════════════════════════════════
-//  TOGGLE SCAN — versi orisinal yang terbukti bekerja
-// ══════════════════════════════════════════
+// TOGGLE SCAN (OPTIMIZED FOR ANDROID & IOS)
 async function toggleScan() {
   const btn         = document.getElementById("btnAction");
   const placeholder = document.getElementById("placeholderMsg");
@@ -330,92 +319,122 @@ async function toggleScan() {
   const targetBox   = document.getElementById("targetBox");
 
   if (isScanning) {
-    // STOP
     isScanning = false;
     isTorchOn  = false;
     document.getElementById("btnTorch").classList.remove("active");
-    cancelAnimationFrame(scanLoopFrame);
+    if (scanLoopFrame) cancelAnimationFrame(scanLoopFrame);
     if (streamTrack) { streamTrack.stop(); streamTrack = null; }
     if (video.srcObject) { video.srcObject.getTracks().forEach(t => t.stop()); video.srcObject = null; }
-    if (zxingReader) { zxingReader.reset(); zxingReader = null; }
-    video.style.display    = "none";
-    laser.style.display    = "none";
-    targetBox.style.display = "none";
+    video.style.display       = "none";
+    laser.style.display       = "none";
+    targetBox.style.display   = "none";
     placeholder.style.display = "flex";
     btn.innerHTML = '<i class="fas fa-play" style="margin-right:6px;"></i>SCAN';
     btn.classList.remove("stop");
   } else {
-    // START
     initAudio();
     try {
-      video.style.display    = "block";
-      laser.style.display    = "block";
-      targetBox.style.display = "block";
+      video.style.display       = "block";
+      laser.style.display       = "block";
+      targetBox.style.display   = "block";
       placeholder.style.display = "none";
       btn.innerHTML = '<i class="fas fa-stop" style="margin-right:6px;"></i>STOP';
       btn.classList.add("stop");
       isScanning = true;
 
-      // Constraints — coba HD dulu, fallback ke simple
+      // COMPATIBILITY STREAM CONSTRAINTS (ANDROID FRIENDLY)
+      let constraints = {
+        video: {
+          facingMode: { ideal: currentCam },
+          width: { min: 640, ideal: 1280 },
+          height: { min: 480, ideal: 720 }
+        }
+      };
+
       let stream;
       try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: currentCam }, width: { ideal: 1280 }, height: { ideal: 720 } }
-        });
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
       } catch(e) {
         stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
       }
 
       video.setAttribute("autoplay","");
       video.setAttribute("muted","");
-      video.setAttribute("playsinline","");
+      video.setAttribute("playsinline","true");
       video.srcObject = stream;
       streamTrack = stream.getVideoTracks()[0];
 
-      // Autofocus continuous (Android)
+      // AUTO FOCUS JIKA DIDUKUNG HP
       try {
         const cap = streamTrack.getCapabilities();
-        if (cap.focusMode && cap.focusMode.includes("continuous"))
+        if (cap.focusMode && cap.focusMode.includes("continuous")) {
           await streamTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
+        }
       } catch(_) {}
 
       await new Promise(resolve => { video.onloadedmetadata = () => resolve(); });
       await video.play();
 
-      // Engine: Native (Android) atau ZXing (iOS/fallback)
-      if (nativeDetector) {
-        // Android HW — rAF loop dengan 10ms throttle
-        const detectLoop = async () => {
-          if (!isScanning) return;
-          try {
-            const barcodes = await nativeDetector.detect(video);
-            if (barcodes.length > 0)
-              processBarcodeDetected(barcodes[0].rawValue, barcodes[0].format.toUpperCase());
-          } catch(_) {}
-          setTimeout(() => { if (isScanning) scanLoopFrame = requestAnimationFrame(detectLoop); }, 10);
-        };
-        scanLoopFrame = requestAnimationFrame(detectLoop);
-      } else {
-        // ZXing — pakai decodeFromStream (proven di iOS)
-        zxingReader = new ZXing.BrowserMultiFormatReader(getZXingHints());
-        zxingReader.timeBetweenDecodingAttempts = 10;
-        zxingReader.decodeFromStream(stream, "videoElement", (result, err) => {
-          if (result)
-            processBarcodeDetected(result.getText(),
-              result.getBarcodeFormat ? result.getBarcodeFormat().toString() : "UNKNOWN");
-        });
+      // CANVAS OFFSCREEN UNTUK SCANNER HYBRID (ANDROID STABILITY)
+      if (!canvasCanvas) {
+        canvasCanvas = document.createElement("canvas");
+        canvasCtx = canvasCanvas.getContext("2d", { willReadFrequently: true });
       }
 
+      if (!zxingReader) {
+        zxingReader = new ZXing.BrowserMultiFormatReader();
+      }
+
+      // SCAN LOOP UNTUK LINTAS BROWSER / ANDROID
+      const runScanLoop = async () => {
+        if (!isScanning) return;
+
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+          let found = false;
+
+          // 1. DICOBA PAKAI HARDWARE DETECTOR (JIKA ANDROID MENDUKUNG NATIVE)
+          if (nativeDetector) {
+            try {
+              const barcodes = await nativeDetector.detect(video);
+              if (barcodes.length > 0) {
+                processBarcodeDetected(barcodes[0].rawValue, barcodes[0].format.toUpperCase());
+                found = true;
+              }
+            } catch(_) {}
+          }
+
+          // 2. JIKA NATIVE TIDAK DETEKSI / TIDAK ADA, GUNAKAN CANVAS DECODER (SANGAT COCOK UNTUK ANDROID)
+          if (!found && zxingReader) {
+            try {
+              canvasCanvas.width = video.videoWidth || 640;
+              canvasCanvas.height = video.videoHeight || 480;
+              canvasCtx.drawImage(video, 0, 0, canvasCanvas.width, canvasCanvas.height);
+              
+              const result = zxingReader.decodeFromCanvas(canvasCanvas);
+              if (result) {
+                processBarcodeDetected(result.getText(), result.getBarcodeFormat ? result.getBarcodeFormat().toString() : "UNKNOWN");
+              }
+            } catch(_) {}
+          }
+        }
+
+        if (isScanning) {
+          setTimeout(() => {
+            scanLoopFrame = requestAnimationFrame(runScanLoop);
+          }, 60); // frame interval seimbang untuk perfomance Android & iOS
+        }
+      };
+
+      scanLoopFrame = requestAnimationFrame(runScanLoop);
+
     } catch(err) {
-      Swal.fire("Kamera Gagal", "Izin belum diberikan / browser tidak support.", "error");
+      Swal.fire("Kamera Gagal", "Izin kamera belum diberikan atau browser tidak mendukung.", "error");
       if (isScanning) toggleScan();
     }
   }
 }
 
-// ══════════════════════════════════════════
-//  TORCH
-// ══════════════════════════════════════════
+// TORCH
 async function toggleTorch() {
   if (!isScanning || !streamTrack) return Toast.fire({icon:"warning",title:"Mulai scan dulu!"});
   try {
@@ -428,18 +447,14 @@ async function toggleTorch() {
   } catch(_) { Toast.fire({icon:"error",title:"Akses ditolak"}); }
 }
 
-// ══════════════════════════════════════════
-//  SWITCH CAMERA
-// ══════════════════════════════════════════
+// SWITCH CAMERA
 function switchCamera() {
   currentCam = currentCam === "environment" ? "user" : "environment";
   if (isScanning) { toggleScan(); setTimeout(toggleScan, 300); }
   else Toast.fire({icon:"info",title:currentCam==="environment"?"Kamera Belakang":"Kamera Depan"});
 }
 
-// ══════════════════════════════════════════
-//  MASTER DB
-// ══════════════════════════════════════════
+// MASTER DB
 const DEFAULT_MASTER = {
   "1593103505404312800401050003": {jenisBarcode:"Barcode 2",panjang:305,lebar:14,potongan:24,persegi:"10.25",golongan:"10(3)"},
   "11111916000503202881401070011": {jenisBarcode:"Barcode 2",panjang:280,lebar:15,potongan:24,persegi:"10.08",golongan:"FFP(11)"},
@@ -447,9 +462,7 @@ const DEFAULT_MASTER = {
 };
 let masterDB = { ...DEFAULT_MASTER, ...JSON.parse(localStorage.getItem("SCMMasterDB") || "{}") };
 
-// ══════════════════════════════════════════
-//  PARSERS
-// ══════════════════════════════════════════
+// PARSERS
 function parseBarcode1(raw) {
   if (raw.startsWith("86") && raw.length >= 24) {
     try {
@@ -484,9 +497,7 @@ function parseBarcode20Digit(raw) {
   return null;
 }
 
-// ══════════════════════════════════════════
-//  PROCESS DETECTED
-// ══════════════════════════════════════════
+// PROCESS DETECTED
 function processBarcodeDetected(code, format) {
   code = (code || "").trim();
   if (!code) return;
@@ -544,9 +555,7 @@ function promptNewMasterData(code, format) {
   });
 }
 
-// ══════════════════════════════════════════
-//  MANUAL INPUT
-// ══════════════════════════════════════════
+// MANUAL INPUT
 function inputManual() {
   const val = document.getElementById("manualData").value.trim();
   if (!val) return Toast.fire({icon:"error",title:"Kode kosong!"});
@@ -555,9 +564,7 @@ function inputManual() {
   document.getElementById("manualData").value = "";
 }
 
-// ══════════════════════════════════════════
-//  FEEDBACK
-// ══════════════════════════════════════════
+// FEEDBACK
 function triggerFeedback() {
   if (navigator.vibrate) navigator.vibrate([30]);
   if (audioCtx) {
@@ -573,186 +580,249 @@ function triggerFeedback() {
   }
   const box = document.getElementById("targetBox");
   box.style.borderColor = "var(--success)"; box.style.filter = "drop-shadow(0 0 15px var(--success))";
-  setTimeout(() => { box.style.borderColor = "var(--accent)"; box.style.filter = "drop-shadow(0 0 8px var(--accent))"; }, 150);
+  setTimeout(() => { box.style.borderColor = "var(--accent)"; box.style.filter = "drop-shadow(0 0 8px var(--accent))"; }, 300);
 }
+
 function triggerErrorFeedback() {
   if (navigator.vibrate) navigator.vibrate([100,50,100]);
   if (audioCtx) {
     try {
       const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
       osc.connect(gain); gain.connect(audioCtx.destination);
-      osc.type = "sawtooth"; osc.frequency.setValueAtTime(300, audioCtx.currentTime);
-      gain.gain.setValueAtTime(0, audioCtx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.01);
-      gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.15);
-      osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.15);
+      osc.type = "sawtooth"; osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.2);
+      osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.2);
     } catch(_) {}
   }
-  const box = document.getElementById("targetBox");
-  box.style.borderColor = "var(--danger)"; box.style.filter = "drop-shadow(0 0 15px var(--danger))";
-  setTimeout(() => { box.style.borderColor = "var(--accent)"; box.style.filter = "drop-shadow(0 0 8px var(--accent))"; }, 200);
 }
 
-// ══════════════════════════════════════════
-//  SIMPAN DATA
-// ══════════════════════════════════════════
-function simpanData(kode, fmt, parsedData) {
-  const nowDate = new Date();
-  const tgl = new Date(nowDate.getTime() - nowDate.getTimezoneOffset()*60000).toISOString().split("T")[0];
-  const newData = {
-    id:Date.now(), scannedAt:Date.now(), kode, format:fmt,
-    jenis:parsedData.jenisBarcode,
-    panjang:parsedData.panjang, lebar:parsedData.lebar,
-    potongan:parsedData.potongan, persegi:parsedData.persegi,
-    golongan:parsedData.golongan, tanggal:tgl,
-    jam:nowDate.toTimeString().split(" ")[0],
-  };
-  allData.push(newData);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(allData));
+// SAVE & DATA OPERATIONS
+function simpanData(code, format, parsed) {
   triggerFeedback();
-  Toast.fire({icon:"success",title:`Akurat! Masuk ke ${newData.jenis}`});
-  if (document.getElementById("view-session").classList.contains("active"))  renderToday();
-  if (document.getElementById("view-database").classList.contains("active")) renderDatabase();
+  const now = new Date();
+  const newItem = {
+    id: Date.now(),
+    kode: code,
+    format: format,
+    jenisBarcode: parsed.jenisBarcode,
+    golongan: parsed.golongan,
+    panjang: parsed.panjang,
+    lebar: parsed.lebar,
+    potongan: parsed.potongan,
+    persegi: parsed.persegi,
+    tanggal: now.toISOString().split("T")[0],
+    jam: now.toTimeString().split(" ")[0].slice(0,5)
+  };
+  allData.unshift(newItem);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(allData));
+  Toast.fire({icon:"success", title:`${parsed.jenisBarcode} Berhasil!`});
 }
 
-// ══════════════════════════════════════════
-//  RENDER TABLES
-// ══════════════════════════════════════════
-function formatTgl(tgl) {
-  if (!tgl || tgl==="-") return "-";
-  const p = tgl.split("-");
-  return p.length===3 ? `${p[2]}/${p[1]}/${p[0].substring(2)}` : tgl;
-}
-
-function createTableRows(dataArray, tableIdStr) {
-  const tbody = document.getElementById(tableIdStr);
-  tbody.innerHTML = "";
-  if (!dataArray.length) {
-    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-muted);">Belum ada data di daftar ini</td></tr>`;
-    return;
-  }
-  const isDb = tableIdStr.includes("Db");
-  dataArray.forEach((i, idx) => {
-    const tr = document.createElement("tr");
-    const kodeDisplay = `<span class="badge">${i.kode.length>12?i.kode.substring(0,12)+"…":i.kode}</span>`;
-    if (isDb) {
-      tr.innerHTML = `<td>${idx+1}</td><td>${kodeDisplay}</td><td><b>${i.golongan}</b></td><td>${i.panjang}</td><td>${i.lebar}</td><td>${i.potongan}</td><td>${i.persegi}</td><td>${formatTgl(i.tanggal)}</td><td>${i.jam.substring(0,5)}</td><td><button class="btn-del" onclick="hapus(${i.id},'db')"><i class="fas fa-trash"></i></button></td>`;
-    } else {
-      tr.innerHTML = `<td>${idx+1}</td><td>${kodeDisplay}</td><td><b>${i.golongan}</b></td><td>${i.panjang}</td><td>${i.lebar}</td><td>${i.potongan}</td><td>${i.persegi}</td><td>${i.jam.substring(0,5)}</td><td><button class="btn-del" onclick="hapus(${i.id},'today')"><i class="fas fa-trash"></i></button></td>`;
-    }
-    tbody.appendChild(tr);
-  });
-}
-
-function renderToday() {
-  const nowDate = new Date();
-  const hariIni = new Date(nowDate.getTime()-nowDate.getTimezoneOffset()*60000).toISOString().split("T")[0];
-  ["Barcode 1","Barcode 2"].forEach((jenis,i) => {
-    const d = allData.filter(x=>x.tanggal===hariIni&&x.jenis===jenis).sort((a,b)=>b.scannedAt-a.scannedAt);
-    createTableRows(d, `tableToday${i+1}`);
-  });
-}
-
-function renderDatabase() {
-  const start  = document.getElementById("start").value;
-  const end    = document.getElementById("end").value;
-  const search = document.getElementById("search").value.toLowerCase();
-  const filtered = allData.filter(i => {
-    if (start && i.tanggal < start) return false;
-    if (end   && i.tanggal > end)   return false;
-    if (search && !i.kode.toLowerCase().includes(search) && !i.golongan.toLowerCase().includes(search)) return false;
-    return true;
-  });
-  ["Barcode 1","Barcode 2"].forEach((jenis,i) => {
-    const d = filtered.filter(x=>x.jenis===jenis).sort((a,b)=>b.scannedAt-a.scannedAt);
-    createTableRows(d, `tableDb${i+1}`);
-  });
-}
-
-function hapus(id, source) {
-  const item = allData.find(i=>i.id===id);
-  if (!item) return;
-  Swal.fire({
-    title:"Hapus Data?",text:"Data akan dihapus permanen.",icon:"warning",
-    showCancelButton:true,confirmButtonColor:"var(--danger)",cancelButtonColor:"rgba(255,255,255,0.1)",
-    confirmButtonText:"Ya, Hapus",cancelButtonText:"Batal"
-  }).then(res => {
-    if (res.isConfirmed) {
-      allData = allData.filter(i=>i.id!==id);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(allData));
-      scannedCodesSet.delete(item.kode);
-      renderToday(); renderDatabase();
-    }
-  });
+function hapusData(id) {
+  const item = allData.find(i => i.id === id);
+  if (item) scannedCodesSet.delete(item.kode);
+  allData = allData.filter(i => i.id !== id);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(allData));
+  renderToday();
+  renderDatabase();
 }
 
 function hapusSemuaData() {
   Swal.fire({
-    title:"RESET TOTAL?",text:"Seluruh data akan dihapus total!",icon:"warning",
-    showCancelButton:true,confirmButtonColor:"var(--danger)",cancelButtonColor:"rgba(255,255,255,0.1)",
-    confirmButtonText:"Ya, Hapus Semua",cancelButtonText:"Batal"
-  }).then(res => {
-    if (res.isConfirmed) {
-      localStorage.removeItem(STORAGE_KEY); localStorage.removeItem("SCMMasterDB");
-      allData = []; scannedCodesSet.clear(); masterDB = {...DEFAULT_MASTER};
-      renderToday(); renderDatabase();
-      Toast.fire({icon:"success",title:"Aplikasi Bersih!"});
+    title:"Hapus Semua Data?",
+    text:"Semua riwayat scan akan dibersihkan permanent!",
+    icon:"warning",
+    showCancelButton:true,
+    confirmButtonColor:"var(--danger)",
+    confirmButtonText:"Ya, Reset Total"
+  }).then(r => {
+    if (r.isConfirmed) {
+      allData = [];
+      scannedCodesSet.clear();
+      localStorage.removeItem(STORAGE_KEY);
+      renderToday();
+      renderDatabase();
+      Toast.fire({icon:"success", title:"Sistem telah di-reset"});
     }
   });
 }
 
-// ══════════════════════════════════════════
-//  EXPORT
-// ══════════════════════════════════════════
-function downloadExcelHarian() {
-  const n = new Date();
-  const h = new Date(n.getTime()-n.getTimezoneOffset()*60000).toISOString().split("T")[0];
-  const d = allData.filter(i=>i.tanggal===h);
-  if (!d.length) return Swal.fire("Kosong","Tidak ada data hari ini.","info");
-  exportToExcel(d, "Harian_"+h);
+// RENDERING TABLES
+function renderToday() {
+  const todayStr = new Date().toISOString().split("T")[0];
+  const listToday = allData.filter(i => i.tanggal === todayStr);
+
+  renderTableRows(document.getElementById("tableToday1"), listToday.filter(i => i.jenisBarcode === "Barcode 1"), false);
+  renderTableRows(document.getElementById("tableToday2"), listToday.filter(i => i.jenisBarcode === "Barcode 2"), false);
 }
-function downloadExcelSemua() {
-  if (!allData.length) return Swal.fire("Kosong","Database kosong.","info");
-  exportToExcel(allData, "Master_Data");
-}
-function exportToExcel(dataArray, label) {
-  const wb = XLSX.utils.book_new();
-  ["Barcode 1","Barcode 2"].forEach(type => {
-    const td = dataArray.filter(i=>i.jenis===type).sort((a,b)=>a.scannedAt-b.scannedAt);
-    if (!td.length) return;
-    const isB2 = type==="Barcode 2";
-    const dt = td.map((i,idx) => ({
-      No:idx+1, "Kode Barcode":i.kode, Golongan:i.golongan,
-      Panjang:i.panjang, Lebar:i.lebar,
-      [isB2?"PCS":"Potongan"]:i.potongan,
-      "Persegi (m2)":i.persegi, Tanggal:formatTgl(i.tanggal), Jam:i.jam
-    }));
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dt), type);
+
+function renderDatabase() {
+  const start = document.getElementById("start").value;
+  const end = document.getElementById("end").value;
+  const q = (document.getElementById("search").value || "").toLowerCase();
+
+  let filtered = allData.filter(item => {
+    let passDate = true;
+    if (start && item.tanggal < start) passDate = false;
+    if (end && item.tanggal > end) passDate = false;
+    let passQuery = item.kode.toLowerCase().includes(q) || item.golongan.toLowerCase().includes(q);
+    return passDate && passQuery;
   });
-  XLSX.writeFile(wb, `Export_SCM_${label}_${Date.now()}.xlsx`);
+
+  renderTableRows(document.getElementById("tableDb1"), filtered.filter(i => i.jenisBarcode === "Barcode 1"), true);
+  renderTableRows(document.getElementById("tableDb2"), filtered.filter(i => i.jenisBarcode === "Barcode 2"), true);
 }
+
+function renderTableRows(tbody, items, showDate) {
+  tbody.innerHTML = "";
+  if (items.length === 0) {
+    const colCount = showDate ? 10 : 9;
+    tbody.innerHTML = `<tr><td colspan="${colCount}" style="text-align:center;color:var(--text-muted);">Kosong</td></tr>`;
+    return;
+  }
+  items.forEach((item, index) => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${index + 1}</td>
+        <td><span class="badge">${item.kode}</span></td>
+        <td><b>${item.golongan}</b></td>
+        <td>${item.panjang}</td>
+        <td>${item.lebar}</td>
+        <td>${item.potongan}</td>
+        <td>${item.persegi}</td>
+        ${showDate ? `<td>${item.tanggal}</td>` : ""}
+        <td>${item.jam}</td>
+        <td><button class="btn-del" onclick="hapusData(${item.id})"><i class="fas fa-trash"></i></button></td>
+      </tr>
+    `;
+  });
+}
+
+// EXPORT FUNCTIONS
+function downloadExcelHarian() {
+  const todayStr = new Date().toISOString().split("T")[0];
+  exportExcel(allData.filter(i => i.tanggal === todayStr), `Laporan_Harian_DSN_${todayStr}.xlsx`);
+}
+
+function downloadExcelSemua() {
+  exportExcel(allData, `Laporan_Master_DSN_${new Date().toISOString().split("T")[0]}.xlsx`);
+}
+
+function exportExcel(dataset, filename) {
+  if (dataset.length === 0) return Toast.fire({icon:"warning", title:"Tidak ada data untuk diunduh"});
+  
+  const wb = XLSX.utils.book_new();
+  
+  ["Barcode 1", "Barcode 2"].forEach(type => {
+    const rows = dataset.filter(i => i.jenisBarcode === type).map((item, idx) => ({
+      No: idx + 1,
+      Kode: item.kode,
+      Golongan: item.golongan,
+      Panjang: item.panjang,
+      Lebar: item.lebar,
+      Potongan_Pcs: item.potongan,
+      M2: item.persegi,
+      Tanggal: item.tanggal,
+      Jam: item.jam
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    XLSX.utils.book_append_sheet(wb, ws, type);
+  });
+
+  XLSX.writeFile(wb, filename);
+}
+
 function downloadPDFHarian() {
-  const n = new Date();
-  const h = new Date(n.getTime()-n.getTimezoneOffset()*60000).toISOString().split("T")[0];
-  const d = allData.filter(i=>i.tanggal===h);
-  if (!d.length) return Swal.fire("Kosong","Tidak ada data hari ini.","info");
-  exportToPDF(d, "Harian_"+h);
+  const todayStr = new Date().toISOString().split("T")[0];
+  exportPDF(allData.filter(i => i.tanggal === todayStr), `Laporan_Harian_DSN_${todayStr}.pdf`, `LAPORAN SCAN HARIAN (${todayStr})`);
 }
+
 function downloadPDFSemua() {
-  if (!allData.length) return Swal.fire("Kosong","Database kosong.","info");
-  exportToPDF(allData, "Master_Data");
+  exportPDF(allData, `Laporan_Master_DSN_${new Date().toISOString().split("T")[0]}.pdf`, "LAPORAN MASTER DATABASE BARCODE");
 }
-function exportToPDF(dataArray, label) {
-  const {jsPDF} = window.jspdf;
-  const doc = new jsPDF("p","pt","a4");
-  doc.setFontSize(14); doc.text("Laporan Data Scan - PT. Daya Sakti Niaga",40,40);
-  doc.setFontSize(10); doc.setTextColor(100); doc.text(`Tipe: ${label.replace(/_/g," ")}`,40,55);
-  const rows = dataArray.filter(i=>i.jenis!=="Barcode 3")
-    .sort((a,b)=>(a.jenis||"").localeCompare(b.jenis||""))
-    .map((i,idx)=>[idx+1,i.jenis,i.kode,i.golongan,i.panjang,i.lebar,i.potongan,i.persegi,formatTgl(i.tanggal)]);
-  doc.autoTable({head:[["No","Jenis","Kode","Gol","P","L","Pot/PCS","M2","Tanggal"]],body:rows,startY:70,styles:{fontSize:8},headStyles:{fillColor:[139,92,246]}});
-  doc.save(`Export_SCM_${label}_${Date.now()}.pdf`);
+
+function exportPDF(dataset, filename, titleText) {
+  if (dataset.length === 0) return Toast.fire({icon:"warning", title:"Tidak ada data untuk diunduh"});
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF("p", "pt", "a4");
+
+  doc.setFontSize(14);
+  doc.text("PT. DAYA SAKTI NIAGA", 40, 40);
+  doc.setFontSize(10);
+  doc.text(titleText, 40, 55);
+
+  let currentY = 70;
+
+  ["Barcode 1", "Barcode 2"].forEach(type => {
+    const filtered = dataset.filter(i => i.jenisBarcode === type);
+    if (filtered.length > 0) {
+      doc.setFontSize(11);
+      doc.text(`Tipe: ${type}`, 40, currentY);
+      
+      const bodyData = filtered.map((item, idx) => [
+        idx + 1, item.kode, item.golongan, item.panjang, item.lebar, item.potongan, item.persegi, item.tanggal, item.jam
+      ]);
+
+      doc.autoTable({
+        startY: currentY + 10,
+        head: [["No", "Kode", "Golongan", "Panjang", "Lebar", "Pcs", "M²", "Tgl", "Jam"]],
+        body: bodyData,
+        theme: "striped",
+        headStyles: { fillColor: [30, 41, 59] },
+        styles: { fontSize: 8 }
+      });
+
+      currentY = doc.lastAutoTable.finalY + 25;
+    }
+  });
+
+  doc.save(filename);
 }
+
+// FITUR WHATSAPP SHARE
+function shareWAHariIni() {
+  const todayStr = new Date().toISOString().split("T")[0];
+  const listToday = allData.filter(i => i.tanggal === todayStr);
+  kirimKeWA(listToday, `*LAPORAN SCAN HARIAN - PT. DAYA SAKTI NIAGA*\nTanggal: ${todayStr}`);
+}
+
+function shareWASemua() {
+  kirimKeWA(allData, `*LAPORAN MASTER DATABASE SCAN - PT. DAYA SAKTI NIAGA*`);
+}
+
+function kirimKeWA(dataset, judulHeader) {
+  if (dataset.length === 0) return Toast.fire({icon:"warning", title:"Tidak ada data untuk dibagikan!"});
+
+  let text = `${judulHeader}\nTotal Item: ${dataset.length} Scan\n----------------------------------\n`;
+
+  const b1 = dataset.filter(i => i.jenisBarcode === "Barcode 1");
+  const b2 = dataset.filter(i => i.jenisBarcode === "Barcode 2");
+
+  if (b1.length > 0) {
+    text += `\n*BARCODE 1 (${b1.length} item)*\n`;
+    b1.forEach((item, idx) => {
+      text += `${idx + 1}. *${item.kode}* | Gol: ${item.golongan} | P:${item.panjang} L:${item.lebar} Pot:${item.potongan} (${item.persegi} m²)\n`;
+    });
+  }
+
+  if (b2.length > 0) {
+    text += `\n*BARCODE 2 (${b2.length} item)*\n`;
+    b2.forEach((item, idx) => {
+      text += `${idx + 1}. *${item.kode}* | Gol: ${item.golongan} | P:${item.panjang} L:${item.lebar} Pcs:${item.potongan} (${item.persegi} m²)\n`;
+    });
+  }
+
+  const encodedText = encodeURIComponent(text);
+  window.open(`https://api.whatsapp.com/send?text=${encodedText}`, "_blank");
+}
+
+// INIT
+window.addEventListener("DOMContentLoaded", () => {
+  renderToday();
+  renderDatabase();
+});
 </script>
 </body>
 </html>
