@@ -10,8 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
-  <!-- Core Scanner Engine: ZXing JS Browser Native Engine -->
-  <script src="https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js"></script>
+  <script src="https://unpkg.com/@zxing/library@latest"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
@@ -301,45 +300,28 @@
     let db = JSON.parse(localStorage.getItem("DSN_SCAN_DB")) || [];
     let isScanning = false;
     let isProcessing = false;
-    let mediaStream = null;
-    let scanInterval = null;
-    let nativeDetector = null;
-    let zxingReader = null;
+    let codeReader = null;
+    let selectedDeviceId = null;
 
     window.addEventListener("DOMContentLoaded", () => {
       renderTables();
-      initDecoderEngine();
+      initZXing();
     });
 
-    // Inisialisasi Engine Pemindai khusus Barcode 1D Industri
-    async function initDecoderEngine() {
-      if ('BarcodeDetector' in window) {
-        try {
-          const supported = await BarcodeDetector.getSupportedFormats();
-          if (supported.includes('code_128')) {
-            nativeDetector = new BarcodeDetector({
-              formats: ['code_128', 'code_39', 'itf', 'ean_13', 'upc_a']
-            });
+    function initZXing() {
+      codeReader = new ZXing.BrowserMultiFormatReader();
+      codeReader.listVideoInputDevices()
+        .then((videoInputDevices) => {
+          if (videoInputDevices.length > 0) {
+            const backCamera = videoInputDevices.find(device => 
+              device.label.toLowerCase().includes('back') || 
+              device.label.toLowerCase().includes('rear') || 
+              device.label.toLowerCase().includes('environment')
+            );
+            selectedDeviceId = backCamera ? backCamera.deviceId : videoInputDevices[0].deviceId;
           }
-        } catch (e) {
-          console.warn("Native BarcodeDetector gagal, beralih ke Fallback Engine:", e);
-        }
-      }
-
-      // Fallback Engine ZXing dengan konfig Dekoder 1D Spesifik
-      const hints = new Map();
-      const formats = [
-        ZXing.BarcodeFormat.CODE_128,
-        ZXing.BarcodeFormat.CODE_39,
-        ZXing.BarcodeFormat.ITF,
-        ZXing.BarcodeFormat.EAN_13,
-        ZXing.BarcodeFormat.UPC_A
-      ];
-      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
-      hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-
-      zxingReader = new ZXing.MultiFormatReader();
-      zxingReader.setHints(hints);
+        })
+        .catch((err) => console.error("Error memuat kamera:", err));
     }
 
     function saveDatabase() {
@@ -367,65 +349,41 @@
       else startScan();
     }
 
-    async function startScan() {
-      if (isScanning) return;
+    function startScan() {
+      if (isScanning || !codeReader) return;
 
       const video = document.getElementById("video");
       const placeholder = document.getElementById("placeholderMsg");
       const laser = document.getElementById("laserLine");
 
-      try {
-        // Minta Resolusi Full HD Tanpa Crop & Autofokus Kontinu
-        const constraints = {
-          video: {
-            facingMode: { ideal: "environment" },
-            width: { min: 1280, ideal: 1920, max: 3840 },
-            height: { min: 720, ideal: 1080, max: 2160 },
-            focusMode: { ideal: "continuous" }
-          }
-        };
+      placeholder.style.display = "none";
+      video.style.display = "block";
+      laser.style.display = "block";
 
-        mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-        video.srcObject = mediaStream;
-        await video.play();
-
-        // Paksa Continuous Focus jika didukung oleh browser hardware API
-        const track = mediaStream.getVideoTracks()[0];
-        if (track && track.getCapabilities) {
-          const capabilities = track.getCapabilities();
-          if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
-            await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
-          }
+      codeReader.decodeFromVideoDevice(selectedDeviceId, 'video', (result, err) => {
+        if (result && !isProcessing) {
+          isProcessing = true;
+          playFeedback();
+          promptAddRecord(result.getText());
         }
+      }).catch((err) => {
+        console.error("Error ZXing Scan:", err);
+        Swal.fire("Error Kamera", "Tidak dapat membuka kamera.", "error");
+        stopScan();
+      });
 
-        placeholder.style.display = "none";
-        video.style.display = "block";
-        laser.style.display = "block";
-
-        isScanning = true;
-        const btn = document.getElementById("btnAction");
-        btn.classList.add("stop");
-        btn.innerHTML = '<i class="fas fa-stop" style="margin-right:8px"></i> STOP SCAN';
-
-        // Loop Scan Full-Frame
-        processFrameLoop();
-
-      } catch (err) {
-        console.error("Gagal Akses Kamera:", err);
-        Swal.fire("Error Kamera", "Tidak dapat membuka kamera. Pastikan izin kamera telah diaktifkan.", "error");
-      }
+      isScanning = true;
+      const btn = document.getElementById("btnAction");
+      btn.classList.add("stop");
+      btn.innerHTML = '<i class="fas fa-stop" style="margin-right:8px"></i> STOP SCAN';
     }
 
     function stopScan() {
+      if (!isScanning || !codeReader) return;
+
+      codeReader.reset();
       isScanning = false;
       isProcessing = false;
-
-      if (scanInterval) cancelAnimationFrame(scanInterval);
-
-      if (mediaStream) {
-        mediaStream.getTracks().forEach(track => track.stop());
-        mediaStream = null;
-      }
 
       const video = document.getElementById("video");
       const placeholder = document.getElementById("placeholderMsg");
@@ -438,57 +396,6 @@
       const btn = document.getElementById("btnAction");
       btn.classList.remove("stop");
       btn.innerHTML = '<i class="fas fa-play" style="margin-right:8px"></i> MULAI SCAN';
-    }
-
-    // Pemrosesan Frame secara Native Full-Frame (Anti-Blur & Anti-Crop)
-    async function processFrameLoop() {
-      if (!isScanning) return;
-
-      const video = document.getElementById("video");
-
-      if (video.readyState === video.HAVE_ENOUGH_DATA && !isProcessing) {
-        try {
-          let detectedCode = null;
-
-          // Opsi 1: Akselerasi Hardware via Native Browser API
-          if (nativeDetector) {
-            const barcodes = await nativeDetector.detect(video);
-            if (barcodes.length > 0) {
-              detectedCode = barcodes[0].rawValue;
-            }
-          }
-
-          // Opsi 2: Fallback ke Full-Frame Sub-Pixel ZXing Canvas Engine
-          if (!detectedCode && zxingReader) {
-            const canvas = document.createElement("canvas");
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const ctx = canvas.getContext("2d", { willReadFrequently: true });
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const luminanceSource = new ZXing.RGBLuminanceSource(imageData.data, canvas.width, canvas.height);
-            const binaryBitmap = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(luminanceSource));
-
-            const result = zxingReader.decode(binaryBitmap);
-            if (result) {
-              detectedCode = result.getText();
-            }
-          }
-
-          if (detectedCode) {
-            isProcessing = true;
-            playFeedback();
-            promptAddRecord(detectedCode);
-          }
-        } catch (e) {
-          // Frame gagal didekode (Abaikan error per frame)
-        }
-      }
-
-      if (isScanning) {
-        scanInterval = requestAnimationFrame(processFrameLoop);
-      }
     }
 
     function playFeedback() {
