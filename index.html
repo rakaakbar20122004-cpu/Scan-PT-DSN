@@ -239,16 +239,13 @@ let allData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
 let scannedCodesSet = new Set(allData.map(i => i.kode));
 
 // SCANNER STATE
-let isScanning    = false;
-let currentCam    = "environment";
-let lastErrorTime  = 0;
-let isTorchOn     = false;
-let streamTrack   = null;
+let isScanning   = false;
+let currentCam   = "environment";
+let lastErrorTime = 0;
+let isTorchOn    = false;
+let streamTrack  = null;
 let scanLoopFrame = null;
-let audioCtx       = null;
-let zxingReader   = null;
-let canvasCanvas  = null;
-let canvasCtx     = null;
+let audioCtx      = null;
 
 const video = document.getElementById("videoElement");
 
@@ -257,22 +254,35 @@ const Toast = Swal.mixin({
   timer:2000, background:"rgba(15,23,42,0.95)", color:"#fff"
 });
 
-// DETEKSI HARDWARE DETECTOR (UNTUK CHROME ANDROID JIKA TERSEDIA)
+// DEVICE DETECTION
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 const hasNativeScanner = "BarcodeDetector" in window;
 let nativeDetector = null;
+let zxingReader = null;
 
-if (hasNativeScanner) {
-  try {
-    nativeDetector = new BarcodeDetector({
-      formats: ["code_128","code_39","code_93","ean_13","ean_8","upc_a","upc_e","itf","codabar"]
-    });
-    document.getElementById("engineBadge").innerText = "HW ACCEL";
-  } catch(e) {
-    nativeDetector = null;
-    document.getElementById("engineBadge").innerText = "HYBRID MODE";
-  }
+if (hasNativeScanner && !isIOS) {
+  document.getElementById("engineBadge").innerText = "HW ACCEL";
+  nativeDetector = new BarcodeDetector({
+    formats: ["code_128","code_39","code_93","ean_13","ean_8","upc_a","upc_e","itf","codabar"]
+  });
 } else {
-  document.getElementById("engineBadge").innerText = "HYBRID MODE";
+  document.getElementById("engineBadge").innerText = isIOS ? "IOS PRO" : "SW MODE";
+}
+
+function getZXingHints() {
+  try {
+    return new Map([
+      [ZXing.DecodeHintType.TRY_HARDER, true],
+      [ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+        ZXing.BarcodeFormat.CODE_128,
+        ZXing.BarcodeFormat.CODE_39,
+        ZXing.BarcodeFormat.ITF,
+        ZXing.BarcodeFormat.EAN_13,
+        ZXing.BarcodeFormat.UPC_A,
+      ]],
+    ]);
+  } catch(e){ return undefined; }
 }
 
 function initAudio() {
@@ -311,7 +321,7 @@ function switchPage(pageId, el) {
   if (pageId === "view-database") renderDatabase();
 }
 
-// TOGGLE SCAN (OPTIMIZED FOR ANDROID & IOS)
+// TOGGLE SCAN
 async function toggleScan() {
   const btn         = document.getElementById("btnAction");
   const placeholder = document.getElementById("placeholderMsg");
@@ -322,113 +332,74 @@ async function toggleScan() {
     isScanning = false;
     isTorchOn  = false;
     document.getElementById("btnTorch").classList.remove("active");
-    if (scanLoopFrame) cancelAnimationFrame(scanLoopFrame);
+    cancelAnimationFrame(scanLoopFrame);
     if (streamTrack) { streamTrack.stop(); streamTrack = null; }
     if (video.srcObject) { video.srcObject.getTracks().forEach(t => t.stop()); video.srcObject = null; }
-    video.style.display       = "none";
-    laser.style.display       = "none";
-    targetBox.style.display   = "none";
+    if (zxingReader) { zxingReader.reset(); zxingReader = null; }
+    video.style.display    = "none";
+    laser.style.display    = "none";
+    targetBox.style.display = "none";
     placeholder.style.display = "flex";
     btn.innerHTML = '<i class="fas fa-play" style="margin-right:6px;"></i>SCAN';
     btn.classList.remove("stop");
   } else {
     initAudio();
     try {
-      video.style.display       = "block";
-      laser.style.display       = "block";
-      targetBox.style.display   = "block";
+      video.style.display    = "block";
+      laser.style.display    = "block";
+      targetBox.style.display = "block";
       placeholder.style.display = "none";
       btn.innerHTML = '<i class="fas fa-stop" style="margin-right:6px;"></i>STOP';
       btn.classList.add("stop");
       isScanning = true;
 
-      // COMPATIBILITY STREAM CONSTRAINTS (ANDROID FRIENDLY)
-      let constraints = {
-        video: {
-          facingMode: { ideal: currentCam },
-          width: { min: 640, ideal: 1280 },
-          height: { min: 480, ideal: 720 }
-        }
-      };
-
       let stream;
       try {
-        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: currentCam }, width: { ideal: 1280 }, height: { ideal: 720 } }
+        });
       } catch(e) {
         stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
       }
 
       video.setAttribute("autoplay","");
       video.setAttribute("muted","");
-      video.setAttribute("playsinline","true");
+      video.setAttribute("playsinline","");
       video.srcObject = stream;
       streamTrack = stream.getVideoTracks()[0];
 
-      // AUTO FOCUS JIKA DIDUKUNG HP
       try {
         const cap = streamTrack.getCapabilities();
-        if (cap.focusMode && cap.focusMode.includes("continuous")) {
+        if (cap.focusMode && cap.focusMode.includes("continuous"))
           await streamTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
-        }
       } catch(_) {}
 
       await new Promise(resolve => { video.onloadedmetadata = () => resolve(); });
       await video.play();
 
-      // CANVAS OFFSCREEN UNTUK SCANNER HYBRID (ANDROID STABILITY)
-      if (!canvasCanvas) {
-        canvasCanvas = document.createElement("canvas");
-        canvasCtx = canvasCanvas.getContext("2d", { willReadFrequently: true });
+      if (nativeDetector) {
+        const detectLoop = async () => {
+          if (!isScanning) return;
+          try {
+            const barcodes = await nativeDetector.detect(video);
+            if (barcodes.length > 0)
+              processBarcodeDetected(barcodes[0].rawValue, barcodes[0].format.toUpperCase());
+          } catch(_) {}
+          setTimeout(() => { if (isScanning) scanLoopFrame = requestAnimationFrame(detectLoop); }, 10);
+        };
+        scanLoopFrame = requestAnimationFrame(detectLoop);
+      } else {
+        zxingReader = new ZXing.BrowserMultiFormatReader(getZXingHints());
+        zxingReader.timeBetweenDecodingAttempts = 10;
+        zxingReader.decodeFromStream(stream, "videoElement", (result, err) => {
+          if (result)
+            processBarcodeDetected(result.getText(),
+              result.getBarcodeFormat ? result.getBarcodeFormat().toString() : "UNKNOWN");
+        });
       }
-
-      if (!zxingReader) {
-        zxingReader = new ZXing.BrowserMultiFormatReader();
-      }
-
-      // SCAN LOOP UNTUK LINTAS BROWSER / ANDROID
-      const runScanLoop = async () => {
-        if (!isScanning) return;
-
-        if (video.readyState === video.HAVE_ENOUGH_DATA) {
-          let found = false;
-
-          // 1. DICOBA PAKAI HARDWARE DETECTOR (JIKA ANDROID MENDUKUNG NATIVE)
-          if (nativeDetector) {
-            try {
-              const barcodes = await nativeDetector.detect(video);
-              if (barcodes.length > 0) {
-                processBarcodeDetected(barcodes[0].rawValue, barcodes[0].format.toUpperCase());
-                found = true;
-              }
-            } catch(_) {}
-          }
-
-          // 2. JIKA NATIVE TIDAK DETEKSI / TIDAK ADA, GUNAKAN CANVAS DECODER (SANGAT COCOK UNTUK ANDROID)
-          if (!found && zxingReader) {
-            try {
-              canvasCanvas.width = video.videoWidth || 640;
-              canvasCanvas.height = video.videoHeight || 480;
-              canvasCtx.drawImage(video, 0, 0, canvasCanvas.width, canvasCanvas.height);
-              
-              const result = zxingReader.decodeFromCanvas(canvasCanvas);
-              if (result) {
-                processBarcodeDetected(result.getText(), result.getBarcodeFormat ? result.getBarcodeFormat().toString() : "UNKNOWN");
-              }
-            } catch(_) {}
-          }
-        }
-
-        if (isScanning) {
-          setTimeout(() => {
-            scanLoopFrame = requestAnimationFrame(runScanLoop);
-          }, 60); // frame interval seimbang untuk perfomance Android & iOS
-        }
-      };
-
-      scanLoopFrame = requestAnimationFrame(runScanLoop);
 
     } catch(err) {
-      Swal.fire("Kamera Gagal", "Izin kamera belum diberikan atau browser tidak mendukung.", "error");
+      Swal.fire("Kamera Gagal", "Izin belum diberikan / browser tidak support.", "error");
       if (isScanning) toggleScan();
     }
   }
@@ -781,7 +752,9 @@ function exportPDF(dataset, filename, titleText) {
   doc.save(filename);
 }
 
-// FITUR WHATSAPP SHARE
+// ══════════════════════════════════════════
+//  FITUR WHATSAPP SHARE
+// ══════════════════════════════════════════
 function shareWAHariIni() {
   const todayStr = new Date().toISOString().split("T")[0];
   const listToday = allData.filter(i => i.tanggal === todayStr);
