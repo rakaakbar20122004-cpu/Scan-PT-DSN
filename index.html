@@ -357,14 +357,15 @@
         margin-bottom: 30px;
       }
 
+      /* PERBAIKAN CSS: VIDEO STREAM FIT UNTUK DETEKSI RESOLUSI PRESISI */
       .scanner-container {
         position: relative;
         width: 100%;
         border-radius: var(--radius-lg);
         overflow: hidden;
         background-color: #000;
-        aspect-ratio: 4 / 5;
-        max-height: 65vh;
+        min-height: 300px;
+        max-height: 60vh;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -375,22 +376,21 @@
       #videoElement {
         width: 100%;
         height: 100%;
-        object-fit: cover;
+        object-fit: contain; /* diubah dari cover ke contain agar tidak ada piksel barcode terpotong */
         display: none;
       }
 
       .targeting-box {
         position: absolute;
-        top: 25%;
-        left: 12%;
-        right: 12%;
-        bottom: 25%;
-        border-radius: 20px;
+        top: 20%;
+        left: 10%;
+        right: 10%;
+        bottom: 20%;
+        border-radius: 16px;
         pointer-events: none;
         z-index: 5;
-        box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.65);
+        box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.55);
         display: none;
-        transition: border-color 0.3s ease;
       }
 
       .targeting-box::before,
@@ -399,24 +399,24 @@
       .targeting-box-inner::after {
         content: "";
         position: absolute;
-        width: 35px;
-        height: 35px;
-        border-color: #ffffff;
+        width: 30px;
+        height: 30px;
+        border-color: #38bdf8;
         border-style: solid;
-        filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.7));
+        filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.8));
       }
 
       .targeting-box::before {
         top: -2px;
         left: -2px;
         border-width: 4px 0 0 4px;
-        border-top-left-radius: 20px;
+        border-top-left-radius: 16px;
       }
       .targeting-box::after {
         bottom: -2px;
         right: -2px;
         border-width: 0 4px 4px 0;
-        border-bottom-right-radius: 20px;
+        border-bottom-right-radius: 16px;
       }
       .targeting-box-inner {
         width: 100%;
@@ -427,41 +427,31 @@
         top: -2px;
         right: -2px;
         border-width: 4px 4px 0 0;
-        border-top-right-radius: 20px;
+        border-top-right-radius: 16px;
       }
       .targeting-box-inner::after {
         bottom: -2px;
         left: -2px;
         border-width: 0 0 4px 4px;
-        border-bottom-left-radius: 20px;
+        border-bottom-left-radius: 16px;
       }
 
       .laser-overlay {
         position: absolute;
         top: 50%;
-        left: 12%;
-        right: 12%;
+        left: 10%;
+        right: 10%;
         height: 2px;
         background: #38bdf8;
-        box-shadow: 0 0 15px 3px rgba(56, 189, 248, 0.8);
+        box-shadow: 0 0 15px 3px rgba(56, 189, 248, 0.9);
         display: none;
         z-index: 10;
-        animation: scanAnim 2.2s infinite cubic-bezier(0.4, 0, 0.2, 1);
+        animation: scanAnim 1.8s infinite cubic-bezier(0.4, 0, 0.2, 1);
       }
 
       @keyframes scanAnim {
-        0%,
-        100% {
-          top: 25%;
-          opacity: 0;
-        }
-        15%,
-        85% {
-          opacity: 1;
-        }
-        50% {
-          top: 75%;
-        }
+        0%, 100% { top: 20%; opacity: 0.3; }
+        50% { top: 80%; opacity: 1; }
       }
 
       .scanner-placeholder {
@@ -473,6 +463,7 @@
         flex-direction: column;
         align-items: center;
         gap: 12px;
+        padding: 40px 0;
       }
       .scanner-placeholder i {
         font-size: 3.5rem;
@@ -614,8 +605,7 @@
         border-collapse: collapse;
         white-space: nowrap;
       }
-      th,
-      td {
+      th, td {
         padding: 14px 16px;
         text-align: left;
         font-size: 0.85rem;
@@ -1197,19 +1187,13 @@
       let torchOn = false;
 
       window.addEventListener("DOMContentLoaded", () => {
-        // PERBAIKAN HP 1: Inisialisasi ZXing dengan 'TRY_HARDER' dan semua format barcode
+        // PERBAIKAN UTAMA: Gunakan konfigurasi format terpilih agar scanning sangat kencang & responsif
         const hints = new Map();
-        hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
         hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
-          ZXing.BarcodeFormat.QR_CODE,
           ZXing.BarcodeFormat.CODE_128,
           ZXing.BarcodeFormat.CODE_39,
           ZXing.BarcodeFormat.EAN_13,
-          ZXing.BarcodeFormat.EAN_8,
-          ZXing.BarcodeFormat.UPC_A,
-          ZXing.BarcodeFormat.UPC_E,
-          ZXing.BarcodeFormat.ITF,
-          ZXing.BarcodeFormat.DATA_MATRIX
+          ZXing.BarcodeFormat.QR_CODE
         ]);
 
         codeReader = new ZXing.BrowserMultiFormatReader(hints);
@@ -1239,18 +1223,18 @@
 
       async function initCameraDevices() {
         try {
-          const videoInputDevices = await codeReader.listVideoInputDevices();
-          videoDevices = videoInputDevices;
+          const devices = await codeReader.listVideoInputDevices();
+          videoDevices = devices;
           if (videoDevices.length > 0) {
-            // Pilih Kamera Belakang Utama
-            const backCamera = videoDevices.find((device) =>
-              /back|rear|environment|kamera belakang/i.test(device.label)
+            // Mengutamakan kamera belakang (back/environment)
+            const backCam = videoDevices.find((d) =>
+              /back|rear|environment|kamera belakang/i.test(d.label)
             );
-            currentDeviceId = backCamera ? backCamera.deviceId : videoDevices[videoDevices.length - 1].deviceId;
+            currentDeviceId = backCam ? backCam.deviceId : videoDevices[videoDevices.length - 1].deviceId;
             currentDeviceIndex = videoDevices.findIndex((d) => d.deviceId === currentDeviceId);
           }
         } catch (err) {
-          console.error("Akses Kamera Terkendala:", err);
+          console.error("Gagal mendapatkan daftar kamera:", err);
         }
       }
 
@@ -1273,26 +1257,20 @@
         btnAction.classList.add("stop");
         btnAction.innerHTML = '<i class="fas fa-stop" style="margin-right: 8px"></i> STOP';
 
-        // PERBAIKAN HP 2: Pengaturan Constraint Kamera Presisi + Auto Focus Continuous
-        const constraints = {
-          video: {
-            deviceId: currentDeviceId ? { exact: currentDeviceId } : undefined,
-            facingMode: { ideal: "environment" },
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            advanced: [{ focusMode: "continuous" }]
+        // DETEKSI LANGSUNG DENGAN CAMERA ID (Mencapai keakuratan & responsivitas terbaik)
+        codeReader.decodeFromVideoDevice(
+          currentDeviceId,
+          "videoElement",
+          (result, err) => {
+            if (result && isScanning) {
+              handleScannedBarcode(result.text);
+            }
           }
-        };
-
-        codeReader.decodeFromConstraints(constraints, "videoElement", (result, err) => {
-          if (result) {
-            handleScannedBarcode(result.text);
-          }
-        }).catch(err => {
-          console.error("Kamera gagal membaca constraint, mencoba mode fallback", err);
-          // Fallback jika constraint khusus ditolak oleh browser HP tertentu
-          codeReader.decodeFromVideoDevice(currentDeviceId, "videoElement", (result) => {
-            if (result) handleScannedBarcode(result.text);
+        ).catch((err) => {
+          console.error("Gagal memulai scanner:", err);
+          // Fallback jika id device gagal, coba null (default camera)
+          codeReader.decodeFromVideoDevice(null, "videoElement", (result) => {
+            if (result && isScanning) handleScannedBarcode(result.text);
           });
         });
       }
@@ -1336,7 +1314,7 @@
         try {
           const capabilities = videoTrack.getCapabilities ? videoTrack.getCapabilities() : {};
           if (!capabilities.torch) {
-            Swal.fire("Info", "Flashlight/Torch tidak didukung oleh perangkat HP ini.", "info");
+            Swal.fire("Info", "Lampu Kilat / Flashlight tidak didukung pada kamera ini.", "info");
             return;
           }
 
@@ -1346,7 +1324,7 @@
           });
           document.getElementById("btnTorch").classList.toggle("active", torchOn);
         } catch (e) {
-          Swal.fire("Info", "Lampu flash tidak didukung browser ini.", "info");
+          Swal.fire("Info", "Flashlight tidak diizinkan oleh sistem.", "info");
         }
       }
 
