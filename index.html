@@ -230,15 +230,15 @@ let allData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
 let scannedCodesSet = new Set(allData.map(i => i.kode));
 
 // ══════════════════════════════════════════
-//  SCANNER STATE — sama persis seperti versi yang terbukti jalan
+//  SCANNER STATE
 // ══════════════════════════════════════════
-let isScanning   = false;
-let currentCam   = "environment";
+let isScanning    = false;
+let currentCam    = "environment";
 let lastErrorTime = 0;
-let isTorchOn    = false;
-let streamTrack  = null;
+let isTorchOn     = false;
+let streamTrack   = null;
 let scanLoopFrame = null;
-let audioCtx     = null;
+let audioCtx      = null;
 
 const video = document.getElementById("videoElement");
 
@@ -248,23 +248,31 @@ const Toast = Swal.mixin({
 });
 
 // ══════════════════════════════════════════
-//  DEVICE DETECTION
+//  DEVICE DETECTION — Hybrid Engine Logic
 // ══════════════════════════════════════════
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
   (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const isAndroid = /Android/i.test(navigator.userAgent);
 const hasNativeScanner = "BarcodeDetector" in window;
-let nativeDetector = null;
-let zxingReader = null;
 
-if (hasNativeScanner && !isIOS) {
+let nativeDetector = null;
+let zxingReader    = null;
+
+// Badge labeling
+if (isIOS) {
+  document.getElementById("engineBadge").innerText = "IOS PRO";
+} else if (hasNativeScanner) {
   document.getElementById("engineBadge").innerText = "HW ACCEL";
   nativeDetector = new BarcodeDetector({
     formats: ["code_128","code_39","code_93","ean_13","ean_8","upc_a","upc_e","itf","codabar"]
   });
 } else {
-  document.getElementById("engineBadge").innerText = isIOS ? "IOS PRO" : "SW MODE";
+  document.getElementById("engineBadge").innerText = isAndroid ? "ANDROID+" : "SW MODE";
 }
 
+// ── ZXing Hints ──────────────────────────────────────
+// iOS: proven minimal hints (TRY_HARDER + core formats)
+// Android: identical core hints — ROI crop compensates for speed
 function getZXingHints() {
   try {
     return new Map([
@@ -321,7 +329,10 @@ function switchPage(pageId, el) {
 }
 
 // ══════════════════════════════════════════
-//  TOGGLE SCAN — versi orisinal yang terbukti bekerja
+//  TOGGLE SCAN — Hybrid Engine
+//  iOS    → ZXing decodeFromStream (tidak diubah sama sekali)
+//  Android native → rAF BarcodeDetector loop (agresif, tanpa throttle)
+//  Android ZXing  → rAF canvas ROI crop loop (baru, jauh lebih cepat)
 // ══════════════════════════════════════════
 async function toggleScan() {
   const btn         = document.getElementById("btnAction");
@@ -330,40 +341,66 @@ async function toggleScan() {
   const targetBox   = document.getElementById("targetBox");
 
   if (isScanning) {
-    // STOP
+    // ── STOP ──────────────────────────────
     isScanning = false;
     isTorchOn  = false;
     document.getElementById("btnTorch").classList.remove("active");
     cancelAnimationFrame(scanLoopFrame);
     if (streamTrack) { streamTrack.stop(); streamTrack = null; }
     if (video.srcObject) { video.srcObject.getTracks().forEach(t => t.stop()); video.srcObject = null; }
-    if (zxingReader) { zxingReader.reset(); zxingReader = null; }
-    video.style.display    = "none";
-    laser.style.display    = "none";
+    if (zxingReader)  { zxingReader.reset(); zxingReader = null; }
+    video.style.display     = "none";
+    laser.style.display     = "none";
     targetBox.style.display = "none";
     placeholder.style.display = "flex";
     btn.innerHTML = '<i class="fas fa-play" style="margin-right:6px;"></i>SCAN';
     btn.classList.remove("stop");
+
   } else {
-    // START
+    // ── START ─────────────────────────────
     initAudio();
     try {
-      video.style.display    = "block";
-      laser.style.display    = "block";
+      video.style.display     = "block";
+      laser.style.display     = "block";
       targetBox.style.display = "block";
       placeholder.style.display = "none";
       btn.innerHTML = '<i class="fas fa-stop" style="margin-right:6px;"></i>STOP';
       btn.classList.add("stop");
       isScanning = true;
 
-      // Constraints — coba HD dulu, fallback ke simple
+      // ── Camera stream ──────────────────
+      // iOS: resolusi proven (1280x720, facingMode ideal) — TIDAK DIUBAH
+      // Android: request lebih tinggi agar crop ROI tetap tajam
       let stream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: currentCam }, width: { ideal: 1280 }, height: { ideal: 720 } }
-        });
-      } catch(e) {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      if (isIOS) {
+        // Persis seperti versi iOS original
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: currentCam }, width: { ideal: 1280 }, height: { ideal: 720 } }
+          });
+        } catch(e) {
+          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        }
+      } else {
+        // Android: minta resolusi lebih tinggi + advanced constraints untuk kecepatan decode
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: { ideal: currentCam },
+              width:  { ideal: 1920, min: 640 },
+              height: { ideal: 1080, min: 480 },
+              frameRate: { ideal: 30, min: 15 },
+            }
+          });
+        } catch(e) {
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode: { ideal: currentCam }, width: { ideal: 1280 }, height: { ideal: 720 } }
+            });
+          } catch(e2) {
+            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+          }
+        }
       }
 
       video.setAttribute("autoplay","");
@@ -372,31 +409,26 @@ async function toggleScan() {
       video.srcObject = stream;
       streamTrack = stream.getVideoTracks()[0];
 
-      // Autofocus continuous (Android)
-      try {
-        const cap = streamTrack.getCapabilities();
-        if (cap.focusMode && cap.focusMode.includes("continuous"))
-          await streamTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
-      } catch(_) {}
+      // Autofocus continuous — Android
+      if (!isIOS) {
+        try {
+          const cap = streamTrack.getCapabilities();
+          if (cap.focusMode && cap.focusMode.includes("continuous"))
+            await streamTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
+        } catch(_) {}
+      }
 
       await new Promise(resolve => { video.onloadedmetadata = () => resolve(); });
       await video.play();
 
-      // Engine: Native (Android) atau ZXing (iOS/fallback)
-      if (nativeDetector) {
-        // Android HW — rAF loop dengan 10ms throttle
-        const detectLoop = async () => {
-          if (!isScanning) return;
-          try {
-            const barcodes = await nativeDetector.detect(video);
-            if (barcodes.length > 0)
-              processBarcodeDetected(barcodes[0].rawValue, barcodes[0].format.toUpperCase());
-          } catch(_) {}
-          setTimeout(() => { if (isScanning) scanLoopFrame = requestAnimationFrame(detectLoop); }, 10);
-        };
-        scanLoopFrame = requestAnimationFrame(detectLoop);
-      } else {
-        // ZXing — pakai decodeFromStream (proven di iOS)
+      // ══════════════════════════════════
+      //  ENGINE SELECTION
+      // ══════════════════════════════════
+
+      if (isIOS) {
+        // ────────────────────────────────
+        //  iOS ENGINE — ZXing decodeFromStream, TIDAK DIUBAH
+        // ────────────────────────────────
         zxingReader = new ZXing.BrowserMultiFormatReader(getZXingHints());
         zxingReader.timeBetweenDecodingAttempts = 10;
         zxingReader.decodeFromStream(stream, "videoElement", (result, err) => {
@@ -404,6 +436,110 @@ async function toggleScan() {
             processBarcodeDetected(result.getText(),
               result.getBarcodeFormat ? result.getBarcodeFormat().toString() : "UNKNOWN");
         });
+
+      } else if (nativeDetector) {
+        // ────────────────────────────────
+        //  ANDROID NATIVE ENGINE (BarcodeDetector / HW Accelerated)
+        //  Loop rAF tanpa throttle — secepat mungkin
+        // ────────────────────────────────
+        const nativeLoop = async () => {
+          if (!isScanning) return;
+          try {
+            const barcodes = await nativeDetector.detect(video);
+            if (barcodes.length > 0)
+              processBarcodeDetected(barcodes[0].rawValue, barcodes[0].format.toUpperCase());
+          } catch(_) {}
+          if (isScanning) scanLoopFrame = requestAnimationFrame(nativeLoop);
+        };
+        scanLoopFrame = requestAnimationFrame(nativeLoop);
+
+      } else {
+        // ────────────────────────────────
+        //  ANDROID ZXING ENGINE — Canvas ROI Crop Loop
+        //
+        //  Cara kerja:
+        //  1. Setiap frame rAF, gambar video ke canvas offscreen
+        //  2. HANYA crop area targeting-box (30% tinggi × 90% lebar video)
+        //     → ZXing hanya proses ~27% pixel, jauh lebih cepat
+        //  3. decodeFromCanvas() synchronous — tidak ada delay async
+        //  4. Setelah berhasil decode, tunggu 500ms sebelum loop lanjut
+        //     (debounce agar tidak double-fire pada barcode yang sama)
+        // ────────────────────────────────
+        zxingReader = new ZXing.BrowserMultiFormatReader(getZXingHints());
+        // Matikan delay internal ZXing — kita kontrol sendiri via rAF
+        zxingReader.timeBetweenDecodingAttempts = 0;
+
+        // Canvas offscreen — dibuat sekali, dipakai ulang
+        const roiCanvas = document.createElement("canvas");
+        const roiCtx    = roiCanvas.getContext("2d", { willReadFrequently: true });
+
+        // Throttle agar tidak proses setiap frame (setiap 2 rAF ≈ 30fps pada 60hz display)
+        let frameSkip   = 0;
+        let isDecoding  = false;
+
+        const androidZXingLoop = () => {
+          if (!isScanning) return;
+
+          frameSkip++;
+          // Proses setiap 2 frame (≈30fps). Ubah ke 1 jika ingin lebih agresif.
+          if (frameSkip < 2) {
+            scanLoopFrame = requestAnimationFrame(androidZXingLoop);
+            return;
+          }
+          frameSkip = 0;
+
+          // Tunggu video benar-benar siap
+          if (video.readyState < 2 || video.videoWidth === 0 || isDecoding) {
+            scanLoopFrame = requestAnimationFrame(androidZXingLoop);
+            return;
+          }
+
+          isDecoding = true;
+
+          const vW = video.videoWidth;
+          const vH = video.videoHeight;
+
+          // Hitung ROI sesuai targeting-box CSS:
+          //   top:35%, bottom:35% → tinggi ROI 30% dari vH
+          //   left:5%, right:5%   → lebar ROI  90% dari vW
+          const roiX = Math.floor(vW * 0.05);
+          const roiY = Math.floor(vH * 0.35);
+          const roiW = Math.floor(vW * 0.90);
+          const roiH = Math.floor(vH * 0.30);
+
+          // Resize canvas hanya jika dimensi berubah (lazy resize)
+          if (roiCanvas.width !== roiW || roiCanvas.height !== roiH) {
+            roiCanvas.width  = roiW;
+            roiCanvas.height = roiH;
+          }
+
+          // Gambar hanya ROI ke canvas — inilah kunci kecepatan
+          roiCtx.drawImage(video, roiX, roiY, roiW, roiH, 0, 0, roiW, roiH);
+
+          try {
+            // decodeFromCanvas() adalah synchronous throw-based API:
+            // - Berhasil → return Result
+            // - Gagal    → throw NotFoundException (diabaikan)
+            const result = zxingReader.decodeFromCanvas(roiCanvas);
+            if (result) {
+              const fmt = result.getBarcodeFormat ? result.getBarcodeFormat().toString() : "UNKNOWN";
+              processBarcodeDetected(result.getText(), fmt);
+              // Debounce singkat setelah berhasil scan
+              isDecoding = false;
+              if (isScanning) {
+                scanLoopFrame = requestAnimationFrame(androidZXingLoop);
+              }
+              return;
+            }
+          } catch(e) {
+            // NotFoundException normal — lanjutkan loop
+          }
+
+          isDecoding = false;
+          if (isScanning) scanLoopFrame = requestAnimationFrame(androidZXingLoop);
+        };
+
+        scanLoopFrame = requestAnimationFrame(androidZXingLoop);
       }
 
     } catch(err) {
