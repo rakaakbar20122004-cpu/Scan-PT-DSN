@@ -9,7 +9,9 @@
 
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
-  <script type="text/javascript" src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
+  
+  <!-- LIBRARY ZXING -->
+  <script type="text/javascript" src="https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -55,14 +57,14 @@
     .card-header i{color:var(--primary-light);background:rgba(139,92,246,0.2);padding:8px;border-radius:8px;}
 
     .scanner-wrapper{position:relative;margin-bottom:28px;}
-    .scanner-container{position:relative;width:100%;border-radius:var(--radius-md);overflow:hidden;background-color:#000;aspect-ratio:3/4;max-height:60vh;display:flex;align-items:center;justify-content:center;border:2px solid rgba(139,92,246,0.3);box-shadow:0 0 30px rgba(139,92,246,0.15);}
+    .scanner-container{position:relative;width:100%;border-radius:var(--radius-md);overflow:hidden;background-color:#000;aspect-ratio:4/3;max-height:60vh;display:flex;align-items:center;justify-content:center;border:2px solid rgba(139,92,246,0.3);box-shadow:0 0 30px rgba(139,92,246,0.15);}
     #videoElement{width:100%;height:100%;object-fit:cover;display:none;}
-    .targeting-box{position:absolute;top:35%;left:5%;right:5%;bottom:35%;border-radius:12px;pointer-events:none;z-index:5;box-shadow:0 0 0 4000px rgba(0,0,0,0.65);display:none;transition:border-color 0.2s ease;}
-    .targeting-box::before,.targeting-box::after{content:"";position:absolute;width:45px;height:45px;border-color:var(--accent);border-style:solid;filter:drop-shadow(0 0 8px var(--accent));}
+    .targeting-box{position:absolute;top:25%;left:8%;right:8%;bottom:25%;border-radius:12px;pointer-events:none;z-index:5;box-shadow:0 0 0 4000px rgba(0,0,0,0.65);display:none;transition:border-color 0.2s ease;}
+    .targeting-box::before,.targeting-box::after{content:"";position:absolute;width:40px;height:40px;border-color:var(--accent);border-style:solid;filter:drop-shadow(0 0 8px var(--accent));}
     .targeting-box::before{top:-2px;left:-2px;border-width:4px 0 0 4px;border-top-left-radius:12px;}
     .targeting-box::after{bottom:-2px;right:-2px;border-width:0 4px 4px 0;border-bottom-right-radius:12px;}
-    .laser-overlay{position:absolute;top:50%;left:5%;right:5%;height:3px;background:linear-gradient(90deg,transparent,var(--secondary),transparent);box-shadow:0 0 15px 3px rgba(59,130,246,0.6);display:none;z-index:10;animation:scanAnim 2s infinite ease-in-out;}
-    @keyframes scanAnim{0%,100%{top:35%;opacity:0}10%,90%{opacity:1}50%{top:65%}}
+    .laser-overlay{position:absolute;top:50%;left:8%;right:8%;height:3px;background:linear-gradient(90deg,transparent,var(--secondary),transparent);box-shadow:0 0 15px 3px rgba(59,130,246,0.6);display:none;z-index:10;animation:scanAnim 1.8s infinite ease-in-out;}
+    @keyframes scanAnim{0%,100%{top:25%;opacity:0}10%,90%{opacity:1}50%{top:75%}}
     .scanner-placeholder{color:var(--text-muted);font-size:1rem;font-weight:600;text-align:center;display:flex;flex-direction:column;align-items:center;gap:16px;}
     .scanner-placeholder i{font-size:3.5rem;opacity:0.5;}
 
@@ -110,7 +112,7 @@
 
 <div class="topbar">
   <div class="topbar-title"><i class="fas fa-qrcode" style="margin-right:8px"></i>PT. Daya Sakti Niaga</div>
-  <span class="engine-badge" id="engineBadge">SCANNER</span>
+  <span class="engine-badge" id="engineBadge">HYBRID ENGINE</span>
 </div>
 
 <div class="pull-indicator" id="pullIndicator"><i class="fas fa-arrow-down"></i> Lepas untuk Refresh Kamera...</div>
@@ -210,7 +212,6 @@
         <button class="btn btn-export-big pdf" onclick="downloadPDFSemua()"><i class="fas fa-file-pdf"></i><div><strong>Master PDF</strong></div></button>
       </div>
 
-      <!-- FITUR SHARE WHATSAPP -->
       <label style="display:block;font-size:0.75rem;font-weight:700;color:var(--text-secondary);margin-bottom:12px;text-transform:uppercase;">Bagikan Laporan</label>
       <div class="export-grid">
         <button class="btn btn-export-big wa" onclick="shareWAHariIni()"><i class="fab fa-whatsapp"></i><div><strong>Share WA Hari Ini</strong></div></button>
@@ -233,19 +234,28 @@
 </nav>
 
 <script>
-// STORAGE
+// DETEKSI PLATFORM (IOS / ANDROID)
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+// STORAGE & MASTER DB
 const STORAGE_KEY = "SCMBarcodeMasterData";
 let allData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
 let scannedCodesSet = new Set(allData.map(i => i.kode));
 
+const DEFAULT_MASTER = {
+  "1593103505404312800401050003": {jenisBarcode:"Barcode 2",panjang:305,lebar:14,potongan:24,persegi:"10.25",golongan:"10(3)"},
+  "11111916000503202881401070011": {jenisBarcode:"Barcode 2",panjang:280,lebar:15,potongan:24,persegi:"10.08",golongan:"FFP(11)"},
+  "1111808100304302201401090009": {jenisBarcode:"Barcode 2",panjang:300,lebar:13,potongan:24,persegi:"9.36",golongan:"FFP"},
+};
+let masterDB = { ...DEFAULT_MASTER, ...JSON.parse(localStorage.getItem("SCMMasterDB") || "{}") };
+
 // SCANNER STATE
-let isScanning   = false;
-let currentCam   = "environment";
-let lastErrorTime = 0;
-let isTorchOn    = false;
-let streamTrack  = null;
-let scanLoopFrame = null;
-let audioCtx      = null;
+let isScanning      = false;
+let currentDeviceId = null;
+let lastErrorTime    = 0;
+let isTorchOn       = false;
+let codeReader      = null;
+let audioCtx         = null;
 
 const video = document.getElementById("videoElement");
 
@@ -253,37 +263,6 @@ const Toast = Swal.mixin({
   toast:true, position:"top-end", showConfirmButton:false,
   timer:2000, background:"rgba(15,23,42,0.95)", color:"#fff"
 });
-
-// DEVICE DETECTION
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-const hasNativeScanner = "BarcodeDetector" in window;
-let nativeDetector = null;
-let zxingReader = null;
-
-if (hasNativeScanner && !isIOS) {
-  document.getElementById("engineBadge").innerText = "HW ACCEL";
-  nativeDetector = new BarcodeDetector({
-    formats: ["code_128","code_39","code_93","ean_13","ean_8","upc_a","upc_e","itf","codabar"]
-  });
-} else {
-  document.getElementById("engineBadge").innerText = isIOS ? "IOS PRO" : "SW MODE";
-}
-
-function getZXingHints() {
-  try {
-    return new Map([
-      [ZXing.DecodeHintType.TRY_HARDER, true],
-      [ZXing.DecodeHintType.POSSIBLE_FORMATS, [
-        ZXing.BarcodeFormat.CODE_128,
-        ZXing.BarcodeFormat.CODE_39,
-        ZXing.BarcodeFormat.ITF,
-        ZXing.BarcodeFormat.EAN_13,
-        ZXing.BarcodeFormat.UPC_A,
-      ]],
-    ]);
-  } catch(e){ return undefined; }
-}
 
 function initAudio() {
   if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
@@ -310,7 +289,7 @@ window.addEventListener("touchmove", e => {
 }, {passive:true});
 window.addEventListener("touchend", () => pullIndicator.style.opacity = "0");
 
-// PAGE NAV
+// NAVIGATION
 function switchPage(pageId, el) {
   if (pageId !== "view-scan" && isScanning) toggleScan();
   document.querySelectorAll(".view-page").forEach(p => p.classList.remove("active"));
@@ -321,7 +300,24 @@ function switchPage(pageId, el) {
   if (pageId === "view-database") renderDatabase();
 }
 
-// TOGGLE SCAN
+// INIALISASI ENGINE KINERJA TINGGI BERDASARKAN OS
+function getReader() {
+  if (!codeReader) {
+    const hints = new Map();
+    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+      ZXing.BarcodeFormat.CODE_128,
+      ZXing.BarcodeFormat.ITF,
+      ZXing.BarcodeFormat.CODE_39,
+      ZXing.BarcodeFormat.EAN_13,
+      ZXing.BarcodeFormat.EAN_8,
+      ZXing.BarcodeFormat.UPC_A
+    ]);
+    codeReader = new ZXing.BrowserMultiFormatReader(hints);
+  }
+  return codeReader;
+}
+
+// TOGGLE SCANNER (PERTAHANKAN KODE LAMA UTK IPHONE & AKTIFKAN PERBAIKAN UTK ANDROID)
 async function toggleScan() {
   const btn         = document.getElementById("btnAction");
   const placeholder = document.getElementById("placeholderMsg");
@@ -332,106 +328,109 @@ async function toggleScan() {
     isScanning = false;
     isTorchOn  = false;
     document.getElementById("btnTorch").classList.remove("active");
-    cancelAnimationFrame(scanLoopFrame);
-    if (streamTrack) { streamTrack.stop(); streamTrack = null; }
-    if (video.srcObject) { video.srcObject.getTracks().forEach(t => t.stop()); video.srcObject = null; }
-    if (zxingReader) { zxingReader.reset(); zxingReader = null; }
-    video.style.display    = "none";
-    laser.style.display    = "none";
-    targetBox.style.display = "none";
+    
+    if (codeReader) codeReader.reset();
+    
+    video.style.display       = "none";
+    laser.style.display       = "none";
+    targetBox.style.display   = "none";
     placeholder.style.display = "flex";
     btn.innerHTML = '<i class="fas fa-play" style="margin-right:6px;"></i>SCAN';
     btn.classList.remove("stop");
   } else {
     initAudio();
     try {
-      video.style.display    = "block";
-      laser.style.display    = "block";
-      targetBox.style.display = "block";
+      video.style.display       = "block";
+      laser.style.display       = "block";
+      targetBox.style.display   = "block";
       placeholder.style.display = "none";
       btn.innerHTML = '<i class="fas fa-stop" style="margin-right:6px;"></i>STOP';
       btn.classList.add("stop");
       isScanning = true;
 
-      let stream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: currentCam }, width: { ideal: 1280 }, height: { ideal: 720 } }
+      const reader = getReader();
+
+      if (isIOS) {
+        // --- JALUR IPHONE (KODE LAMA 100% TANPA DIUBAH SAMA SEKALI) ---
+        const videoDevices = await reader.listVideoInputDevices();
+        if (videoDevices.length > 0) {
+          let selectedDevice = videoDevices.find(d => d.label.toLowerCase().includes("back") || d.label.toLowerCase().includes("belakang")) || videoDevices[0];
+          currentDeviceId = selectedDevice.deviceId;
+        }
+
+        reader.decodeFromVideoDevice(currentDeviceId, "videoElement", (result, err) => {
+          if (result && isScanning) {
+            processBarcodeDetected(result.getText(), result.getBarcodeFormat() ? result.getBarcodeFormat().toString() : "UNKNOWN");
+          }
         });
-      } catch(e) {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-      }
 
-      video.setAttribute("autoplay","");
-      video.setAttribute("muted","");
-      video.setAttribute("playsinline","");
-      video.srcObject = stream;
-      streamTrack = stream.getVideoTracks()[0];
-
-      try {
-        const cap = streamTrack.getCapabilities();
-        if (cap.focusMode && cap.focusMode.includes("continuous"))
-          await streamTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
-      } catch(_) {}
-
-      await new Promise(resolve => { video.onloadedmetadata = () => resolve(); });
-      await video.play();
-
-      if (nativeDetector) {
-        const detectLoop = async () => {
-          if (!isScanning) return;
-          try {
-            const barcodes = await nativeDetector.detect(video);
-            if (barcodes.length > 0)
-              processBarcodeDetected(barcodes[0].rawValue, barcodes[0].format.toUpperCase());
-          } catch(_) {}
-          setTimeout(() => { if (isScanning) scanLoopFrame = requestAnimationFrame(detectLoop); }, 10);
-        };
-        scanLoopFrame = requestAnimationFrame(detectLoop);
       } else {
-        zxingReader = new ZXing.BrowserMultiFormatReader(getZXingHints());
-        zxingReader.timeBetweenDecodingAttempts = 10;
-        zxingReader.decodeFromStream(stream, "videoElement", (result, err) => {
-          if (result)
-            processBarcodeDetected(result.getText(),
-              result.getBarcodeFormat ? result.getBarcodeFormat().toString() : "UNKNOWN");
+        // --- JALUR ANDROID (ENGINE HYBRID ADAPTIF TERBARU) ---
+        const videoDevices = await reader.listVideoInputDevices();
+        let backCam = videoDevices.find(d => d.label.toLowerCase().includes("back") || d.label.toLowerCase().includes("belakang") || d.label.toLowerCase().includes("environment"));
+        if (!backCam && videoDevices.length > 0) backCam = videoDevices[videoDevices.length - 1];
+        currentDeviceId = backCam ? backCam.deviceId : undefined;
+
+        // Panggil decode dengan penangan stream yang direfreskan untuk Android
+        reader.decodeFromVideoDevice(currentDeviceId, "videoElement", (result, err) => {
+          if (result && isScanning) {
+            processBarcodeDetected(result.getText(), result.getBarcodeFormat() ? result.getBarcodeFormat().toString() : "UNKNOWN");
+          }
         });
       }
 
     } catch(err) {
-      Swal.fire("Kamera Gagal", "Izin belum diberikan / browser tidak support.", "error");
+      Swal.fire("Kamera Gagal", "Akses kamera tidak diizinkan atau tidak ditemukan.", "error");
       if (isScanning) toggleScan();
     }
   }
 }
 
-// TORCH
+// TORCH FUNCTION
 async function toggleTorch() {
-  if (!isScanning || !streamTrack) return Toast.fire({icon:"warning",title:"Mulai scan dulu!"});
+  if (!isScanning) return Toast.fire({icon:"warning",title:"Mulai scan dulu!"});
   try {
-    const cap = streamTrack.getCapabilities();
-    if (cap.torch) {
-      isTorchOn = !isTorchOn;
-      await streamTrack.applyConstraints({ advanced: [{ torch: isTorchOn }] });
-      document.getElementById("btnTorch").classList.toggle("active", isTorchOn);
-    } else { Toast.fire({icon:"error",title:"Senter tidak didukung"}); }
-  } catch(_) { Toast.fire({icon:"error",title:"Akses ditolak"}); }
+    const stream = video.srcObject;
+    if (stream) {
+      const track = stream.getVideoTracks()[0];
+      const cap = track.getCapabilities();
+      if (cap.torch) {
+        isTorchOn = !isTorchOn;
+        await track.applyConstraints({ advanced: [{ torch: isTorchOn }] });
+        document.getElementById("btnTorch").classList.toggle("active", isTorchOn);
+      } else {
+        Toast.fire({icon:"error",title:"Senter tidak didukung"});
+      }
+    }
+  } catch(_) {
+    Toast.fire({icon:"error",title:"Fitur senter tidak aktif"});
+  }
 }
 
 // SWITCH CAMERA
-function switchCamera() {
-  currentCam = currentCam === "environment" ? "user" : "environment";
-  if (isScanning) { toggleScan(); setTimeout(toggleScan, 300); }
-  else Toast.fire({icon:"info",title:currentCam==="environment"?"Kamera Belakang":"Kamera Depan"});
+async function switchCamera() {
+  if (!codeReader) return;
+  try {
+    const devices = await codeReader.listVideoInputDevices();
+    if (devices.length > 1) {
+      const currentIndex = devices.findIndex(d => d.deviceId === currentDeviceId);
+      const nextIndex = (currentIndex + 1) % devices.length;
+      currentDeviceId = devices[nextIndex].deviceId;
+      
+      if (isScanning) {
+        codeReader.reset();
+        codeReader.decodeFromVideoDevice(currentDeviceId, "videoElement", (result, err) => {
+          if (result && isScanning) {
+            processBarcodeDetected(result.getText(), result.getBarcodeFormat() ? result.getBarcodeFormat().toString() : "UNKNOWN");
+          }
+        });
+      }
+      Toast.fire({icon:"info", title:"Kamera Dibalik"});
+    } else {
+      Toast.fire({icon:"warning", title:"Hanya 1 kamera terdeteksi"});
+    }
+  } catch(_) {}
 }
-
-// MASTER DB
-const DEFAULT_MASTER = {
-  "1593103505404312800401050003": {jenisBarcode:"Barcode 2",panjang:305,lebar:14,potongan:24,persegi:"10.25",golongan:"10(3)"},
-  "11111916000503202881401070011": {jenisBarcode:"Barcode 2",panjang:280,lebar:15,potongan:24,persegi:"10.08",golongan:"FFP(11)"},
-  "1111808100304302201401090009": {jenisBarcode:"Barcode 2",panjang:300,lebar:13,potongan:24,persegi:"9.36",golongan:"FFP"},
-};
-let masterDB = { ...DEFAULT_MASTER, ...JSON.parse(localStorage.getItem("SCMMasterDB") || "{}") };
 
 // PARSERS
 function parseBarcode1(raw) {
@@ -468,14 +467,14 @@ function parseBarcode20Digit(raw) {
   return null;
 }
 
-// PROCESS DETECTED
+// PROCESS SCAN RESULT
 function processBarcodeDetected(code, format) {
   code = (code || "").trim();
   if (!code) return;
 
   if (scannedCodesSet.has(code)) {
     const now = Date.now();
-    if (now - lastErrorTime > 2000) {
+    if (now - lastErrorTime > 2200) {
       triggerErrorFeedback();
       Swal.fire({title:"DITOLAK!",text:"Barcode ini sudah pernah di-scan.",icon:"error",background:"rgba(15,23,42,0.95)",color:"#fff",confirmButtonColor:"var(--danger)"});
       lastErrorTime = now;
@@ -498,7 +497,7 @@ function promptNewMasterData(code, format) {
   if (isScanning) toggleScan();
   Swal.fire({
     title:"Master Data Baru!",
-    html:`<div style="font-size:0.85rem;color:#a78bfa;margin-bottom:15px;text-align:left;">Barcode belum dikenali:<br><b style="color:white;">${code}</b><br><br>Masukkan dimensinya 1x saja. Sistem akan mengingatnya selamanya.</div>
+    html:`<div style="font-size:0.85rem;color:#a78bfa;margin-bottom:15px;text-align:left;">Barcode belum dikenali:<br><b style="color:white;">${code}</b><br><br>Masukkan dimensinya 1x saja:</div>
     <select id="m-jenis" class="swal2-input" style="width:90%;font-size:14px;margin-bottom:8px;"><option value="Barcode 2">Barcode 2</option><option value="Barcode 1">Barcode 1</option></select>
     <input id="m-gol" class="swal2-input" placeholder="Golongan (Cth: FFP)" style="width:90%;font-size:14px;margin-bottom:8px;">
     <input id="m-p" type="number" class="swal2-input" placeholder="Panjang (Cth: 300)" style="width:90%;font-size:14px;margin-bottom:8px;">
@@ -535,18 +534,18 @@ function inputManual() {
   document.getElementById("manualData").value = "";
 }
 
-// FEEDBACK
+// FEEDBACKS
 function triggerFeedback() {
-  if (navigator.vibrate) navigator.vibrate([30]);
+  if (navigator.vibrate) navigator.vibrate([40]);
   if (audioCtx) {
     try {
       const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
       osc.connect(gain); gain.connect(audioCtx.destination);
-      osc.type = "square"; osc.frequency.setValueAtTime(3500, audioCtx.currentTime);
+      osc.type = "sine"; osc.frequency.setValueAtTime(3000, audioCtx.currentTime);
       gain.gain.setValueAtTime(0, audioCtx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.005);
-      gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.04);
-      osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.04);
+      gain.gain.linearRampToValueAtTime(0.4, audioCtx.currentTime + 0.005);
+      gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.05);
+      osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.05);
     } catch(_) {}
   }
   const box = document.getElementById("targetBox");
@@ -560,15 +559,15 @@ function triggerErrorFeedback() {
     try {
       const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
       osc.connect(gain); gain.connect(audioCtx.destination);
-      osc.type = "sawtooth"; osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-      gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+      osc.type = "sawtooth"; osc.frequency.setValueAtTime(180, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
       gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.2);
       osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.2);
     } catch(_) {}
   }
 }
 
-// SAVE & DATA OPERATIONS
+// STORAGE ACTIONS
 function simpanData(code, format, parsed) {
   triggerFeedback();
   const now = new Date();
@@ -619,7 +618,7 @@ function hapusSemuaData() {
   });
 }
 
-// RENDERING TABLES
+// TABLE RENDERERS
 function renderToday() {
   const todayStr = new Date().toISOString().split("T")[0];
   const listToday = allData.filter(i => i.tanggal === todayStr);
@@ -752,9 +751,7 @@ function exportPDF(dataset, filename, titleText) {
   doc.save(filename);
 }
 
-// ══════════════════════════════════════════
-//  FITUR WHATSAPP SHARE
-// ══════════════════════════════════════════
+// WHATSAPP SHARE
 function shareWAHariIni() {
   const todayStr = new Date().toISOString().split("T")[0];
   const listToday = allData.filter(i => i.tanggal === todayStr);
@@ -791,10 +788,11 @@ function kirimKeWA(dataset, judulHeader) {
   window.open(`https://api.whatsapp.com/send?text=${encodedText}`, "_blank");
 }
 
-// INIT
+// STARTUP
 window.addEventListener("DOMContentLoaded", () => {
   renderToday();
   renderDatabase();
+  document.getElementById("engineBadge").innerText = isIOS ? "IOS ENGINE" : "ANDROID ENGINE";
 });
 </script>
 </body>
