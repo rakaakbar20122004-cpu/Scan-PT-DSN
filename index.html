@@ -32,7 +32,6 @@
     html{-webkit-text-size-adjust:100%;}
     html,body{width:100%;min-height:100vh;overflow-x:hidden;background:#020617;color:var(--text-primary);font-family:"Plus Jakarta Sans",sans-serif;}
     body::before{content:"";position:fixed;top:0;left:0;width:100%;height:100%;background:radial-gradient(circle at 15% 50%,#1e1b4b,transparent 50%),radial-gradient(circle at 85% 30%,#312e81,transparent 50%),radial-gradient(circle at 50% 80%,#0f172a,transparent 50%);z-index:-1;}
-    button,input{touch-action:manipulation;}
 
     .topbar{background:rgba(2,6,23,0.8);backdrop-filter:var(--glass-blur);border-bottom:1px solid var(--glass-border);padding:16px 20px;padding-top:max(16px,env(safe-area-inset-top));display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
     .topbar-title{font-size:1.15rem;font-family:"Space Grotesk",sans-serif;font-weight:700;background:linear-gradient(135deg,var(--secondary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
@@ -57,12 +56,12 @@
     .scanner-wrapper{position:relative;margin-bottom:28px;}
     .scanner-container{position:relative;width:100%;border-radius:var(--radius-md);overflow:hidden;background-color:#000;aspect-ratio:3/4;max-height:60vh;display:flex;align-items:center;justify-content:center;border:2px solid rgba(139,92,246,0.3);box-shadow:0 0 30px rgba(139,92,246,0.15);}
     #videoElement{width:100%;height:100%;object-fit:cover;display:none;}
-    .targeting-box{position:absolute;top:35%;left:5%;right:5%;bottom:35%;border-radius:12px;pointer-events:none;z-index:5;box-shadow:0 0 0 4000px rgba(0,0,0,0.65);display:none;}
+    .targeting-box{position:absolute;top:25%;left:5%;right:5%;bottom:25%;border-radius:12px;pointer-events:none;z-index:5;box-shadow:0 0 0 4000px rgba(0,0,0,0.65);display:none;}
     .targeting-box::before,.targeting-box::after{content:"";position:absolute;width:45px;height:45px;border-color:var(--accent);border-style:solid;filter:drop-shadow(0 0 8px var(--accent));}
     .targeting-box::before{top:-2px;left:-2px;border-width:4px 0 0 4px;border-top-left-radius:12px;}
     .targeting-box::after{bottom:-2px;right:-2px;border-width:0 4px 4px 0;border-bottom-right-radius:12px;}
-    .laser-overlay{position:absolute;top:50%;left:5%;right:5%;height:3px;background:linear-gradient(90deg,transparent,var(--secondary),transparent);box-shadow:0 0 15px 3px rgba(59,130,246,0.6);display:none;z-index:10;animation:scanAnim 2s infinite ease-in-out;}
-    @keyframes scanAnim{0%,100%{top:35%;opacity:0}10%,90%{opacity:1}50%{top:65%}}
+    .laser-overlay{position:absolute;top:50%;left:5%;right:5%;height:3px;background:linear-gradient(90deg,transparent,var(--secondary),transparent);box-shadow:0 0 15px 3px rgba(59,130,246,0.6);display:none;z-index:10;animation:scanAnim 1.5s infinite ease-in-out;}
+    @keyframes scanAnim{0%,100%{top:25%;opacity:0}10%,90%{opacity:1}50%{top:75%}}
     .scanner-placeholder{color:var(--text-muted);font-size:1rem;font-weight:600;text-align:center;display:flex;flex-direction:column;align-items:center;gap:16px;}
     .scanner-placeholder i{font-size:3.5rem;opacity:0.5;}
 
@@ -97,7 +96,6 @@
       gap: 10px;
       margin-bottom: 16px;
       cursor: pointer;
-      transition: all 0.2s ease;
     }
     .btn-upload-file:hover { background: rgba(139,92,246,0.3); }
 
@@ -121,17 +119,14 @@
     .hdr-b2{color:#60a5fa!important;}.hdr-b2 i{background:rgba(96,165,250,0.2);}
 
     div:where(.swal2-container) div:where(.swal2-popup){background:rgba(15,23,42,0.95);backdrop-filter:blur(20px);color:var(--text-primary);border-radius:var(--radius-lg);border:1px solid rgba(255,255,255,0.1);}
-    .pull-indicator{text-align:center;color:var(--text-secondary);font-size:0.85rem;padding:15px;opacity:0;transition:opacity 0.3s;position:absolute;top:70px;width:100%;z-index:90;font-weight:bold;}
   </style>
 </head>
 <body>
 
 <div class="topbar">
   <div class="topbar-title"><i class="fas fa-qrcode" style="margin-right:8px"></i>PT. Daya Sakti Niaga</div>
-  <span class="engine-badge" id="engineBadge">SCANNER</span>
+  <span class="engine-badge" id="engineBadge">TURBO ENGINE</span>
 </div>
-
-<div class="pull-indicator" id="pullIndicator"><i class="fas fa-arrow-down"></i> Lepas untuk Refresh Kamera...</div>
 
 <div class="container">
 
@@ -142,8 +137,9 @@
       <div class="scanner-wrapper">
         <div class="scanner-container" id="scannerBox">
           <div class="scanner-placeholder" id="placeholderMsg">
-            <i class="fas fa-video-slash"></i><span>Kamera Offline</span>
+            <i class="fas fa-video-slash"></i><span>Kamera Standby</span>
           </div>
+          <!-- LANGSUNG KONTROL ELEMEN VIDEO UTAMA TANPA WRAPPER DARI ZXING -->
           <video id="videoElement" autoplay playsinline muted></video>
           <div class="targeting-box" id="targetBox"></div>
           <div class="laser-overlay" id="laser"></div>
@@ -157,9 +153,9 @@
         </div>
       </div>
 
-      <!-- FITUR BARU: SHARE / UPLOAD FOTO BARCODE -->
+      <!-- SHARE / UPLOAD BARCODE -->
       <button class="btn-upload-file" onclick="triggerImageUpload()">
-        <i class="fas fa-image"></i> Scan dari Foto / Gambar Barcode
+        <i class="fas fa-image"></i> Upload / Share Foto Barcode
       </button>
       <input type="file" id="fileInputBarcode" accept="image/*" style="display:none;" onchange="processImageFile(event)"/>
 
@@ -221,19 +217,15 @@
   <div id="view-export" class="view-page">
     <div class="card">
       <div class="card-header"><i class="fas fa-file-export"></i>Pusat Unduhan Laporan</div>
-      <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:24px;">Laporan Excel akan memisahkan data Barcode 1 dan 2 ke Sheet yang berbeda secara otomatis.</p>
-      <label style="display:block;font-size:0.75rem;font-weight:700;color:var(--text-secondary);margin-bottom:12px;text-transform:uppercase;">Export Khusus Hari Ini</label>
       <div class="export-grid">
         <button class="btn btn-export-big excel" onclick="downloadExcelHarian()"><i class="fas fa-file-excel"></i><div><strong>Excel Hari Ini</strong></div></button>
         <button class="btn btn-export-big pdf" onclick="downloadPDFHarian()"><i class="fas fa-file-pdf"></i><div><strong>PDF Hari Ini</strong></div></button>
       </div>
-      <label style="display:block;font-size:0.75rem;font-weight:700;color:var(--text-secondary);margin-bottom:12px;text-transform:uppercase;">Export Master Database</label>
       <div class="export-grid">
         <button class="btn btn-export-big blue" onclick="downloadExcelSemua()"><i class="fas fa-archive"></i><div><strong>Master Excel</strong></div></button>
         <button class="btn btn-export-big pdf" onclick="downloadPDFSemua()"><i class="fas fa-file-pdf"></i><div><strong>Master PDF</strong></div></button>
       </div>
       <hr style="border-color:rgba(255,255,255,0.05);margin:24px 0"/>
-      <h4 style="margin-bottom:12px;font-size:0.85rem;color:var(--danger);text-transform:uppercase;">Zona Berbahaya</h4>
       <button class="btn btn-export-big btn-danger-zone" onclick="hapusSemuaData()"><i class="fas fa-triangle-exclamation"></i><div><strong>Reset Total Memori Aplikasi</strong></div></button>
     </div>
   </div>
@@ -249,66 +241,49 @@
 
 <script>
 // ══════════════════════════════════════════
-//  STORAGE
+//  STORAGE & STATE
 // ══════════════════════════════════════════
 const STORAGE_KEY = "SCMBarcodeMasterData";
 let allData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
 let scannedCodesSet = new Set(allData.map(i => i.kode));
 
-// ══════════════════════════════════════════
-//  SCANNER STATE
-// ══════════════════════════════════════════
 let isScanning    = false;
-let currentCam    = "environment";
+let currentCam    = "environment"; // Toggling facingMode paling stabil
+let streamTrack   = null;
+let mediaStream   = null;
+let scanTimer     = null;
 let lastErrorTime = 0;
 let isTorchOn     = false;
-let streamTrack   = null;
-let scanLoopFrame = null;
 let audioCtx      = null;
 
 const video = document.getElementById("videoElement");
-
 const Toast = Swal.mixin({
   toast:true, position:"top-end", showConfirmButton:false,
   timer:2000, background:"rgba(15,23,42,0.95)", color:"#fff"
 });
 
 // ══════════════════════════════════════════
-//  DEVICE DETECTION — Hybrid Engine Logic
+//  KONFIGURASI ZXING DETECTOR UTAMA
 // ══════════════════════════════════════════
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-const isAndroid = /Android/i.test(navigator.userAgent);
-const hasNativeScanner = "BarcodeDetector" in window;
-
-let nativeDetector = null;
-let zxingReader    = null;
-
-if (isIOS) {
-  document.getElementById("engineBadge").innerText = "IOS PRO";
-} else if (hasNativeScanner) {
-  document.getElementById("engineBadge").innerText = "HW ACCEL";
-  nativeDetector = new BarcodeDetector({
-    formats: ["code_128","code_39","code_93","ean_13","ean_8","upc_a","upc_e","itf","codabar"]
-  });
-} else {
-  document.getElementById("engineBadge").innerText = isAndroid ? "ANDROID+" : "SW MODE";
-}
-
 function getZXingHints() {
-  try {
-    return new Map([
-      [ZXing.DecodeHintType.TRY_HARDER, true],
-      [ZXing.DecodeHintType.POSSIBLE_FORMATS, [
-        ZXing.BarcodeFormat.CODE_128,
-        ZXing.BarcodeFormat.CODE_39,
-        ZXing.BarcodeFormat.ITF,
-        ZXing.BarcodeFormat.EAN_13,
-        ZXing.BarcodeFormat.UPC_A,
-      ]],
-    ]);
-  } catch(e){ return undefined; }
+  const hints = new Map();
+  // Mode TRY_HARDER diaktifkan agar barcode rapat/kurang tajam tetap terbaca
+  hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+  // Pembatasan Format Spesifik untuk Kecepatan & Akurasi
+  hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+    ZXing.BarcodeFormat.CODE_128,
+    ZXing.BarcodeFormat.CODE_39,
+    ZXing.BarcodeFormat.EAN_13,
+    ZXing.BarcodeFormat.UPC_A,
+    ZXing.BarcodeFormat.ITF,
+    ZXing.BarcodeFormat.CODABAR,
+    ZXing.BarcodeFormat.QR_CODE,
+    ZXing.BarcodeFormat.DATA_MATRIX
+  ]);
+  return hints;
 }
+
+const codeReader = new ZXing.BrowserMultiFormatReader(getZXingHints());
 
 function initAudio() {
   if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
@@ -331,31 +306,6 @@ function playBeep() {
   } catch(e) {}
 }
 
-// ══════════════════════════════════════════
-//  PULL TO REFRESH
-// ══════════════════════════════════════════
-let touchStartY = 0;
-const pullIndicator = document.getElementById("pullIndicator");
-window.addEventListener("touchstart", e => {
-  if (document.getElementById("view-scan").classList.contains("active") && window.scrollY === 0)
-    touchStartY = e.touches[0].clientY;
-  else touchStartY = 0;
-}, {passive:true});
-window.addEventListener("touchmove", e => {
-  if (touchStartY > 0 && document.getElementById("view-scan").classList.contains("active")) {
-    const dy = e.touches[0].clientY - touchStartY;
-    if (dy > 80) pullIndicator.style.opacity = "1";
-    if (dy > 160) {
-      touchStartY = 0; pullIndicator.style.opacity = "0";
-      Swal.fire({title:"Menyegarkan Kamera...",timer:1000,background:"rgba(15,23,42,0.95)",color:"#fff",didOpen:()=>Swal.showLoading()}).then(()=>location.reload());
-    }
-  }
-}, {passive:true});
-window.addEventListener("touchend", () => pullIndicator.style.opacity = "0");
-
-// ══════════════════════════════════════════
-//  PAGE NAV
-// ══════════════════════════════════════════
 function switchPage(pageId, el) {
   if (pageId !== "view-scan" && isScanning) toggleScan();
   document.querySelectorAll(".view-page").forEach(p => p.classList.remove("active"));
@@ -367,8 +317,34 @@ function switchPage(pageId, el) {
 }
 
 // ══════════════════════════════════════════
-//  TOGGLE SCANNER & KONTROL FOKUS KAMERA DEKAT
+//  INTEGRASI KAMERA UTAMA (1280x720 & FALLBACK)
 // ══════════════════════════════════════════
+async function getCameraStream() {
+  // Constraint Ideal 1280x720 untuk ketajaman barcode kecil
+  const primaryConstraints = {
+    video: {
+      facingMode: { exact: currentCam },
+      width: { ideal: 1280 },
+      height: { ideal: 720 },
+      advanced: [{ focusMode: "continuous" }]
+    }
+  };
+
+  try {
+    return await navigator.mediaDevices.getUserMedia(primaryConstraints);
+  } catch (err1) {
+    // Fallback 1: Coba facingMode ideal tanpa exact
+    try {
+      return await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: currentCam, width: { ideal: 1280 } }
+      });
+    } catch (err2) {
+      // Fallback 2: Constraint paling sederhana untuk HP lama
+      return await navigator.mediaDevices.getUserMedia({ video: true });
+    }
+  }
+}
+
 async function toggleScan() {
   const btn         = document.getElementById("btnAction");
   const placeholder = document.getElementById("placeholderMsg");
@@ -378,165 +354,88 @@ async function toggleScan() {
   if (isScanning) {
     isScanning = false;
     isTorchOn  = false;
+    if (scanTimer) clearInterval(scanTimer);
     document.getElementById("btnTorch").classList.remove("active");
-    cancelAnimationFrame(scanLoopFrame);
     if (streamTrack) { streamTrack.stop(); streamTrack = null; }
-    if (video.srcObject) { video.srcObject.getTracks().forEach(t => t.stop()); video.srcObject = null; }
-    if (zxingReader)  { zxingReader.reset(); zxingReader = null; }
+    if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+    
+    video.pause();
+    video.srcObject = null;
     video.style.display     = "none";
     laser.style.display     = "none";
     targetBox.style.display = "none";
     placeholder.style.display = "flex";
+    
     btn.innerHTML = '<i class="fas fa-play" style="margin-right:6px;"></i>SCAN';
     btn.classList.remove("stop");
-
   } else {
     initAudio();
     try {
+      mediaStream = await getCameraStream();
+      streamTrack = mediaStream.getVideoTracks()[0];
+
+      // Langsung tautkan stream ke elemen <video> (Kompatibel penuh iOS & Android)
+      video.srcObject = mediaStream;
+      video.setAttribute("playsinline", true);
+      await video.play();
+
       video.style.display     = "block";
       laser.style.display     = "block";
       targetBox.style.display = "block";
       placeholder.style.display = "none";
+      
       btn.innerHTML = '<i class="fas fa-stop" style="margin-right:6px;"></i>STOP';
       btn.classList.add("stop");
       isScanning = true;
 
-      // KONTROL PENYESUAIAN FOKUS JARAK DEKAT (MACRO / NO BLUR)
-      const constraints = {
-        video: {
-          facingMode: { ideal: currentCam },
-          width:  { ideal: 1920, min: 1280 },
-          height: { ideal: 1080, min: 720 },
-          frameRate: { ideal: 30, min: 15 },
-          advanced: [
-            { focusMode: "continuous" },
-            { focusDistance: 0.1 } // Fokus jarak dekat (Macro)
-          ]
-        }
-      };
-
-      let stream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia(constraints);
-      } catch(e) {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-      }
-
-      video.setAttribute("autoplay","");
-      video.setAttribute("muted","");
-      video.setAttribute("playsinline","");
-      video.srcObject = stream;
-      streamTrack = stream.getVideoTracks()[0];
-
-      // Terapkan paksa fitur auto focus berkelanjutan
-      if (streamTrack && streamTrack.getCapabilities) {
+      // Scanning Interval dipercepat jadi 60ms untuk respons kilat
+      scanTimer = setInterval(() => {
+        if (!isScanning || video.readyState < 2) return;
         try {
-          const cap = streamTrack.getCapabilities();
-          const advancedConstraints = {};
-          if (cap.focusMode && cap.focusMode.includes("continuous")) {
-            advancedConstraints.focusMode = "continuous";
+          const result = codeReader.decodeFromVideoElement(video);
+          if (result) {
+            processBarcodeDetected(result.getText());
           }
-          if (Object.keys(advancedConstraints).length > 0) {
-            await streamTrack.applyConstraints({ advanced: [advancedConstraints] });
-          }
-        } catch(_) {}
-      }
+        } catch (e) {
+          // Abaikan kesalahan pembacaan per frame
+        }
+      }, 60);
 
-      await new Promise(resolve => { video.onloadedmetadata = () => resolve(); });
-      await video.play();
-
-      if (isIOS) {
-        zxingReader = new ZXing.BrowserMultiFormatReader(getZXingHints());
-        zxingReader.timeBetweenDecodingAttempts = 10;
-        zxingReader.decodeFromStream(stream, "videoElement", (result, err) => {
-          if (result)
-            processBarcodeDetected(result.getText(),
-              result.getBarcodeFormat ? result.getBarcodeFormat().toString() : "UNKNOWN");
-        });
-
-      } else if (nativeDetector) {
-        const nativeLoop = async () => {
-          if (!isScanning) return;
-          try {
-            const barcodes = await nativeDetector.detect(video);
-            if (barcodes.length > 0)
-              processBarcodeDetected(barcodes[0].rawValue, barcodes[0].format.toUpperCase());
-          } catch(_) {}
-          if (isScanning) scanLoopFrame = requestAnimationFrame(nativeLoop);
-        };
-        scanLoopFrame = requestAnimationFrame(nativeLoop);
-
-      } else {
-        zxingReader = new ZXing.BrowserMultiFormatReader(getZXingHints());
-        zxingReader.timeBetweenDecodingAttempts = 0;
-
-        const roiCanvas = document.createElement("canvas");
-        const roiCtx    = roiCanvas.getContext("2d", { willReadFrequently: true });
-
-        let frameSkip   = 0;
-        let isDecoding  = false;
-
-        const androidZXingLoop = () => {
-          if (!isScanning) return;
-
-          frameSkip++;
-          if (frameSkip < 2) {
-            scanLoopFrame = requestAnimationFrame(androidZXingLoop);
-            return;
-          }
-          frameSkip = 0;
-
-          if (video.readyState < 2 || video.videoWidth === 0 || isDecoding) {
-            scanLoopFrame = requestAnimationFrame(androidZXingLoop);
-            return;
-          }
-
-          isDecoding = true;
-
-          const vW = video.videoWidth;
-          const vH = video.videoHeight;
-
-          const roiX = Math.floor(vW * 0.05);
-          const roiY = Math.floor(vH * 0.35);
-          const roiW = Math.floor(vW * 0.90);
-          const roiH = Math.floor(vH * 0.30);
-
-          if (roiCanvas.width !== roiW || roiCanvas.height !== roiH) {
-            roiCanvas.width  = roiW;
-            roiCanvas.height = roiH;
-          }
-
-          roiCtx.drawImage(video, roiX, roiY, roiW, roiH, 0, 0, roiW, roiH);
-
-          try {
-            const result = zxingReader.decodeFromCanvas(roiCanvas);
-            if (result) {
-              const fmt = result.getBarcodeFormat ? result.getBarcodeFormat().toString() : "UNKNOWN";
-              processBarcodeDetected(result.getText(), fmt);
-              isDecoding = false;
-              if (isScanning) {
-                scanLoopFrame = requestAnimationFrame(androidZXingLoop);
-              }
-              return;
-            }
-          } catch(e) {}
-
-          isDecoding = false;
-          if (isScanning) scanLoopFrame = requestAnimationFrame(androidZXingLoop);
-        };
-
-        scanLoopFrame = requestAnimationFrame(androidZXingLoop);
-      }
-
-    } catch(err) {
-      Swal.fire("Kamera Gagal", "Izin belum diberikan / browser tidak support.", "error");
+    } catch (err) {
+      Swal.fire("Kamera Gagal", "Izin kamera ditolak atau tidak didukung.", "error");
       if (isScanning) toggleScan();
     }
   }
 }
 
+function switchCamera() {
+  currentCam = (currentCam === "environment") ? "user" : "environment";
+  if (isScanning) {
+    toggleScan();
+    setTimeout(toggleScan, 300);
+  } else {
+    Toast.fire({icon:"info", title: currentCam === "environment" ? "Kamera Belakang" : "Kamera Depan"});
+  }
+}
+
+async function toggleTorch() {
+  if (!isScanning || !streamTrack) return Toast.fire({icon:"warning", title:"Nyalakan scan terlebih dahulu!"});
+  try {
+    const cap = streamTrack.getCapabilities();
+    if (cap.torch) {
+      isTorchOn = !isTorchOn;
+      await streamTrack.applyConstraints({ advanced: [{ torch: isTorchOn }] });
+      document.getElementById("btnTorch").classList.toggle("active", isTorchOn);
+    } else {
+      Toast.fire({icon:"error", title:"Senter tidak didukung"});
+    }
+  } catch(_) {
+    Toast.fire({icon:"error", title:"Akses senter gagal"});
+  }
+}
+
 // ══════════════════════════════════════════
-//  PEMBACAAN BARCODE DARI FILE FOTO / GAMBAR
+//  PROSESING FILE FOTO / UPLOAD (MULTI-ROTATION & CONTRAST)
 // ══════════════════════════════════════════
 function triggerImageUpload() {
   document.getElementById("fileInputBarcode").click();
@@ -548,87 +447,103 @@ async function processImageFile(event) {
 
   Swal.fire({
     title: "Membaca Gambar...",
-    text: "Sedang menganalisis barcode dari foto",
+    text: "Memproses rotasi & meningkatkan kontras barcode",
     allowOutsideClick: false,
     didOpen: () => Swal.showLoading()
   });
 
-  try {
-    const image = new Image();
-    const reader = new FileReader();
+  const img = new Image();
+  const reader = new FileReader();
 
-    reader.onload = function(e) {
-      image.src = e.target.result;
-      image.onload = async function() {
-        let detectedText = null;
+  reader.onload = (e) => {
+    img.src = e.target.result;
+    img.onload = async () => {
+      let detectedText = null;
 
-        // Metodologi 1: Native BarcodeDetector
-        if (hasNativeScanner) {
+      // 1. Coba dekode langsung Native BarcodeDetector jika ada
+      if ('BarcodeDetector' in window) {
+        try {
+          const detector = new BarcodeDetector({ formats: ['code_128', 'code_39', 'ean_13', 'qr_code'] });
+          const barcodes = await detector.detect(img);
+          if (barcodes.length > 0) detectedText = barcodes[0].rawValue;
+        } catch (_) {}
+      }
+
+      // 2. Jika native gagal, jalankan Canvas Engine (Preprocess + Rotasi 0, 90, 180, 270 derajat)
+      if (!detectedText) {
+        const angles = [0, 90, 180, 270];
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+
+        for (let angle of angles) {
+          // Resize & Putar canvas
+          const MAX_SIZE = 1280;
+          let w = img.width;
+          let h = img.height;
+          if (w > MAX_SIZE || h > MAX_SIZE) {
+            if (w > h) { h = Math.round((h * MAX_SIZE) / w); w = MAX_SIZE; }
+            else { w = Math.round((w * MAX_SIZE) / h); h = MAX_SIZE; }
+          }
+
+          if (angle === 90 || angle === 270) {
+            canvas.width = h; canvas.height = w;
+          } else {
+            canvas.width = w; canvas.height = h;
+          }
+
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.save();
+          ctx.translate(canvas.width / 2, canvas.height / 2);
+          ctx.rotate((angle * Math.PI) / 180);
+          
+          if (angle === 90 || angle === 270) {
+            ctx.drawImage(img, -h / 2, -w / 2, h, w);
+          } else {
+            ctx.drawImage(img, -w / 2, -h / 2, w, h);
+          }
+          ctx.restore();
+
+          // Tingkatkan Kontras Barcode
+          const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const data = imgData.data;
+          for (let i = 0; i < data.length; i += 4) {
+            // Formula Grayscale
+            let avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+            // Binarisasi / High Contrast
+            let v = avg < 120 ? 0 : 255;
+            data[i] = v; data[i + 1] = v; data[i + 2] = v;
+          }
+          ctx.putImageData(imgData, 0, 0);
+
           try {
-            const barcodes = await nativeDetector.detect(image);
-            if (barcodes.length > 0) {
-              detectedText = barcodes[0].rawValue;
-            }
-          } catch (err) {}
-        }
-
-        // Metodologi 2: Fallback ke ZXing Reader
-        if (!detectedText) {
-          try {
-            const readerEngine = new ZXing.BrowserMultiFormatReader(getZXingHints());
-            const result = await readerEngine.decodeFromImageElement(image);
+            const result = codeReader.decodeFromCanvas(canvas);
             if (result) {
               detectedText = result.getText();
+              break;
             }
-          } catch (err) {}
+          } catch (_) {}
         }
+      }
 
-        Swal.close();
+      Swal.close();
 
-        if (detectedText) {
-          processBarcodeDetected(detectedText, "FILE_UPLOAD");
-        } else {
-          Swal.fire({
-            icon: "error",
-            title: "Gagal Membaca",
-            text: "Barcode tidak terdeteksi pada gambar. Pastikan gambar cukup terang dan tajam."
-          });
-        }
-      };
+      if (detectedText) {
+        processBarcodeDetected(detectedText);
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Gagal Membaca",
+          text: "Barcode tidak terdeteksi. Pastikan stiker barcode tampak penuh dan jelas."
+        });
+      }
     };
-    reader.readAsDataURL(file);
-  } catch (err) {
-    Swal.close();
-    Swal.fire("Error", "Gagal memproses file gambar", "error");
-  }
-
-  // Reset file input
+  };
+  reader.readAsDataURL(file);
   event.target.value = "";
 }
 
 // ══════════════════════════════════════════
-//  TORCH & CAMERA SWITCH
-// ══════════════════════════════════════════
-async function toggleTorch() {
-  if (!isScanning || !streamTrack) return Toast.fire({icon:"warning",title:"Mulai scan dulu!"});
-  try {
-    const cap = streamTrack.getCapabilities();
-    if (cap.torch) {
-      isTorchOn = !isTorchOn;
-      await streamTrack.applyConstraints({ advanced: [{ torch: isTorchOn }] });
-      document.getElementById("btnTorch").classList.toggle("active", isTorchOn);
-    } else { Toast.fire({icon:"error",title:"Senter tidak didukung"}); }
-  } catch(_) { Toast.fire({icon:"error",title:"Akses ditolak"}); }
-}
-
-function switchCamera() {
-  currentCam = currentCam === "environment" ? "user" : "environment";
-  if (isScanning) { toggleScan(); setTimeout(toggleScan, 300); }
-  else Toast.fire({icon:"info",title:currentCam==="environment"?"Kamera Belakang":"Kamera Depan"});
-}
-
-// ══════════════════════════════════════════
-//  MASTER DB
+//  PARSER & DATABASE LOGIC
 // ══════════════════════════════════════════
 const DEFAULT_MASTER = {
   "1593103505404312800401050003": {jenisBarcode:"Barcode 2",panjang:305,lebar:14,potongan:24,persegi:"10.25",golongan:"10(3)"},
@@ -637,9 +552,6 @@ const DEFAULT_MASTER = {
 };
 let masterDB = { ...DEFAULT_MASTER, ...JSON.parse(localStorage.getItem("SCMMasterDB") || "{}") };
 
-// ══════════════════════════════════════════
-//  PARSERS
-// ══════════════════════════════════════════
 function parseBarcode1(raw) {
   if (raw.startsWith("86") && raw.length >= 24) {
     try {
@@ -686,10 +598,7 @@ function parseBarcode2(raw) {
   return null;
 }
 
-// ══════════════════════════════════════════
-//  DATA PROCESSING
-// ══════════════════════════════════════════
-function processBarcodeDetected(rawCode, format = "UNKNOWN") {
+function processBarcodeDetected(rawCode) {
   const now = Date.now();
   if (scannedCodesSet.has(rawCode)) {
     if (now - lastErrorTime > 2000) {
@@ -704,7 +613,7 @@ function processBarcodeDetected(rawCode, format = "UNKNOWN") {
   if (!parsed) {
     if (now - lastErrorTime > 2000) {
       lastErrorTime = now;
-      Toast.fire({ icon: "error", title: "Format Barcode Tidak Dikenal!" });
+      Toast.fire({ icon: "error", title: "Format Barcode Tidak Terdaftar!" });
     }
     return;
   }
@@ -733,68 +642,48 @@ function processBarcodeDetected(rawCode, format = "UNKNOWN") {
 function inputManual() {
   const inputEl = document.getElementById("manualData");
   const val = inputEl.value.trim();
-  if (!val) return Toast.fire({ icon: "warning", title: "Isi barcode terlebih dahulu" });
-  processBarcodeDetected(val, "MANUAL");
+  if (!val) return Toast.fire({ icon: "warning", title: "Isi barcode dulu!" });
+  processBarcodeDetected(val);
   inputEl.value = "";
 }
 
 function hapusItem(timestamp) {
-  Swal.fire({
-    title: "Hapus Data?",
-    text: "Item ini akan dihapus permanen.",
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonColor: "#ef4444",
-    cancelButtonColor: "#334155",
-    confirmButtonText: "Hapus",
-    cancelButtonText: "Batal"
-  }).then((result) => {
-    if (result.isConfirmed) {
-      const target = allData.find(i => i.timestamp === timestamp);
-      if (target) scannedCodesSet.delete(target.kode);
-      allData = allData.filter(i => i.timestamp !== timestamp);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(allData));
-      renderToday();
-      renderDatabase();
-      Toast.fire({ icon: "success", title: "Terhapus" });
-    }
-  });
+  const target = allData.find(i => i.timestamp === timestamp);
+  if (target) scannedCodesSet.delete(target.kode);
+  allData = allData.filter(i => i.timestamp !== timestamp);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(allData));
+  renderToday();
+  renderDatabase();
+  Toast.fire({ icon: "success", title: "Terhapus" });
 }
 
 function hapusSemuaData() {
   Swal.fire({
-    title: "Reset Total Database?",
-    text: "Semua data hasil scan akan dihapus permanen!",
-    icon: "error",
+    title: "Reset Database?",
+    text: "Semua memori hasil scan akan dihapus permanen!",
+    icon: "warning",
     showCancelButton: true,
     confirmButtonColor: "#ef4444",
-    cancelButtonColor: "#334155",
-    confirmButtonText: "Reset Total",
+    confirmButtonText: "Reset",
     cancelButtonText: "Batal"
-  }).then((result) => {
-    if (result.isConfirmed) {
+  }).then((r) => {
+    if (r.isConfirmed) {
       allData = [];
       scannedCodesSet.clear();
       localStorage.removeItem(STORAGE_KEY);
       renderToday();
       renderDatabase();
-      Toast.fire({ icon: "success", title: "Memori Berhasil Direset" });
+      Toast.fire({ icon: "success", title: "Direset" });
     }
   });
 }
 
-// ══════════════════════════════════════════
-//  RENDER FUNCTIONS
-// ══════════════════════════════════════════
 function renderToday() {
   const todayStr = new Date().toISOString().split("T")[0];
   const b1Data = allData.filter(i => i.tanggal === todayStr && i.jenisBarcode === "Barcode 1");
   const b2Data = allData.filter(i => i.tanggal === todayStr && i.jenisBarcode === "Barcode 2");
 
-  const tbody1 = document.getElementById("tableToday1");
-  const tbody2 = document.getElementById("tableToday2");
-
-  tbody1.innerHTML = b1Data.length ? b1Data.map((item, idx) => `
+  document.getElementById("tableToday1").innerHTML = b1Data.length ? b1Data.map((item, idx) => `
     <tr>
       <td>${idx + 1}</td>
       <td><span class="badge">${item.kode}</span></td>
@@ -808,7 +697,7 @@ function renderToday() {
     </tr>
   `).join("") : '<tr><td colspan="9" style="text-align:center;color:var(--text-muted)">Belum ada data hari ini</td></tr>';
 
-  tbody2.innerHTML = b2Data.length ? b2Data.map((item, idx) => `
+  document.getElementById("tableToday2").innerHTML = b2Data.length ? b2Data.map((item, idx) => `
     <tr>
       <td>${idx + 1}</td>
       <td><span class="badge">${item.kode}</span></td>
@@ -835,8 +724,7 @@ function renderDatabase() {
 
     let matchesQuery = true;
     if (query) {
-      matchesQuery = item.kode.toLowerCase().includes(query) ||
-                     item.golongan.toLowerCase().includes(query);
+      matchesQuery = item.kode.toLowerCase().includes(query) || item.golongan.toLowerCase().includes(query);
     }
     return matchesDate && matchesQuery;
   });
@@ -844,10 +732,7 @@ function renderDatabase() {
   const b1Data = filtered.filter(i => i.jenisBarcode === "Barcode 1");
   const b2Data = filtered.filter(i => i.jenisBarcode === "Barcode 2");
 
-  const tbody1 = document.getElementById("tableDb1");
-  const tbody2 = document.getElementById("tableDb2");
-
-  tbody1.innerHTML = b1Data.length ? b1Data.map((item, idx) => `
+  document.getElementById("tableDb1").innerHTML = b1Data.length ? b1Data.map((item, idx) => `
     <tr>
       <td>${idx + 1}</td>
       <td><span class="badge">${item.kode}</span></td>
@@ -860,9 +745,9 @@ function renderDatabase() {
       <td>${item.jam}</td>
       <td><button class="btn-del" onclick="hapusItem(${item.timestamp})"><i class="fas fa-trash"></i></button></td>
     </tr>
-  `).join("") : '<tr><td colspan="10" style="text-align:center;color:var(--text-muted)">Data tidak ditemukan</td></tr>';
+  `).join("") : '<tr><td colspan="10" style="text-align:center;color:var(--text-muted)">Kosong</td></tr>';
 
-  tbody2.innerHTML = b2Data.length ? b2Data.map((item, idx) => `
+  document.getElementById("tableDb2").innerHTML = b2Data.length ? b2Data.map((item, idx) => `
     <tr>
       <td>${idx + 1}</td>
       <td><span class="badge">${item.kode}</span></td>
@@ -875,100 +760,63 @@ function renderDatabase() {
       <td>${item.jam}</td>
       <td><button class="btn-del" onclick="hapusItem(${item.timestamp})"><i class="fas fa-trash"></i></button></td>
     </tr>
-  `).join("") : '<tr><td colspan="10" style="text-align:center;color:var(--text-muted)">Data tidak ditemukan</td></tr>';
+  `).join("") : '<tr><td colspan="10" style="text-align:center;color:var(--text-muted)">Kosong</td></tr>';
 }
 
 // ══════════════════════════════════════════
-//  EXPORT EXCEL & PDF
+//  EXPORTS
 // ══════════════════════════════════════════
 function generateExcel(dataset, filename) {
-  if (!dataset.length) return Toast.fire({ icon: "warning", title: "Tidak ada data untuk diexport" });
-
+  if (!dataset.length) return Toast.fire({ icon: "warning", title: "Tidak ada data" });
   const wb = XLSX.utils.book_new();
-
   const b1 = dataset.filter(i => i.jenisBarcode === "Barcode 1").map((i, idx) => ({
     No: idx + 1, Kode: i.kode, Golongan: i.golongan, Panjang: i.panjang,
     Lebar: i.lebar, Potongan: i.potongan, M2: i.persegi, Tanggal: i.tanggal, Jam: i.jam
   }));
-
   const b2 = dataset.filter(i => i.jenisBarcode === "Barcode 2").map((i, idx) => ({
     No: idx + 1, Kode: i.kode, Golongan: i.golongan, Panjang: i.panjang,
     Lebar: i.lebar, PCS: i.potongan, M2: i.persegi, Tanggal: i.tanggal, Jam: i.jam
   }));
-
-  if (b1.length) {
-    const ws1 = XLSX.utils.json_to_sheet(b1);
-    XLSX.utils.book_append_sheet(wb, ws1, "Barcode 1");
-  }
-  if (b2.length) {
-    const ws2 = XLSX.utils.json_to_sheet(b2);
-    XLSX.utils.book_append_sheet(wb, ws2, "Barcode 2");
-  }
-
+  if (b1.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(b1), "Barcode 1");
+  if (b2.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(b2), "Barcode 2");
   XLSX.writeFile(wb, `${filename}.xlsx`);
 }
 
 function generatePDF(dataset, filename) {
-  if (!dataset.length) return Toast.fire({ icon: "warning", title: "Tidak ada data untuk diexport" });
-
+  if (!dataset.length) return Toast.fire({ icon: "warning", title: "Tidak ada data" });
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
-
   doc.setFontSize(14);
-  doc.text("Laporan Data Scan - PT. Daya Sakti Niaga", 14, 15);
-  doc.setFontSize(10);
-  doc.text(`Dicetak: ${new Date().toLocaleString('id-ID')}`, 14, 22);
+  doc.text("Laporan Data Scan", 14, 15);
 
   const b1 = dataset.filter(i => i.jenisBarcode === "Barcode 1");
   const b2 = dataset.filter(i => i.jenisBarcode === "Barcode 2");
-
-  let startY = 28;
+  let startY = 25;
 
   if (b1.length) {
-    doc.text("Data Barcode 1", 14, startY);
+    doc.text("Barcode 1", 14, startY);
     doc.autoTable({
       startY: startY + 3,
-      head: [["No", "Kode", "Golongan", "Panjang", "Lebar", "Potongan", "M²", "Tanggal", "Jam"]],
+      head: [["No", "Kode", "Golongan", "Panjang", "Lebar", "Potongan", "M²", "Tgl", "Jam"]],
       body: b1.map((i, idx) => [idx + 1, i.kode, i.golongan, i.panjang, i.lebar, i.potongan, i.persegi, i.tanggal, i.jam]),
-      theme: "grid",
-      headStyles: { fillColor: [139, 92, 246] }
     });
     startY = doc.lastAutoTable.finalY + 10;
   }
-
   if (b2.length) {
-    doc.text("Data Barcode 2", 14, startY);
+    doc.text("Barcode 2", 14, startY);
     doc.autoTable({
       startY: startY + 3,
-      head: [["No", "Kode", "Golongan", "Panjang", "Lebar", "PCS", "M²", "Tanggal", "Jam"]],
+      head: [["No", "Kode", "Golongan", "Panjang", "Lebar", "PCS", "M²", "Tgl", "Jam"]],
       body: b2.map((i, idx) => [idx + 1, i.kode, i.golongan, i.panjang, i.lebar, i.potongan, i.persegi, i.tanggal, i.jam]),
-      theme: "grid",
-      headStyles: { fillColor: [59, 130, 246] }
     });
   }
-
   doc.save(`${filename}.pdf`);
 }
 
-function downloadExcelHarian() {
-  const todayStr = new Date().toISOString().split("T")[0];
-  const todayData = allData.filter(i => i.tanggal === todayStr);
-  generateExcel(todayData, `Laporan_Harian_${todayStr}`);
-}
-
-function downloadPDFHarian() {
-  const todayStr = new Date().toISOString().split("T")[0];
-  const todayData = allData.filter(i => i.tanggal === todayStr);
-  generatePDF(todayData, `Laporan_Harian_${todayStr}`);
-}
-
-function downloadExcelSemua() {
-  generateExcel(allData, `Master_Database_${new Date().toISOString().split("T")[0]}`);
-}
-
-function downloadPDFSemua() {
-  generatePDF(allData, `Master_Database_${new Date().toISOString().split("T")[0]}`);
-}
+function downloadExcelHarian() { generateExcel(allData.filter(i => i.tanggal === new Date().toISOString().split("T")[0]), "Harian"); }
+function downloadPDFHarian() { generatePDF(allData.filter(i => i.tanggal === new Date().toISOString().split("T")[0]), "Harian"); }
+function downloadExcelSemua() { generateExcel(allData, "Master_Database"); }
+function downloadPDFSemua() { generatePDF(allData, "Master_Database"); }
 </script>
 </body>
 </html>
