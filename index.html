@@ -5,18 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-  <title>Scanner - PT. Daya Sakti Niaga</title>
+  <title>Scanner Ultra Fast - PT. Daya Sakti Niaga</title>
 
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
-  <script type="text/javascript" src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
+  
+  <!-- ZXing Library Terbaru & Stabil -->
+  <script type="text/javascript" src="https://unpkg.com/@zxing/library@latest"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 
   <style>
-    
     :root {
       --primary:#8b5cf6;--primary-light:#a78bfa;
       --secondary:#3b82f6;--accent:#ec4899;
@@ -58,12 +59,12 @@
     .scanner-wrapper{position:relative;margin-bottom:28px;}
     .scanner-container{position:relative;width:100%;border-radius:var(--radius-md);overflow:hidden;background-color:#000;aspect-ratio:3/4;max-height:60vh;display:flex;align-items:center;justify-content:center;border:2px solid rgba(139,92,246,0.3);box-shadow:0 0 30px rgba(139,92,246,0.15);}
     #videoElement{width:100%;height:100%;object-fit:cover;display:none;}
-    .targeting-box{position:absolute;top:35%;left:5%;right:5%;bottom:35%;border-radius:12px;pointer-events:none;z-index:5;box-shadow:0 0 0 4000px rgba(0,0,0,0.65);display:none;}
+    .targeting-box{position:absolute;top:25%;left:5%;right:5%;bottom:25%;border-radius:12px;pointer-events:none;z-index:5;box-shadow:0 0 0 4000px rgba(0,0,0,0.65);display:none;}
     .targeting-box::before,.targeting-box::after{content:"";position:absolute;width:45px;height:45px;border-color:var(--accent);border-style:solid;filter:drop-shadow(0 0 8px var(--accent));}
     .targeting-box::before{top:-2px;left:-2px;border-width:4px 0 0 4px;border-top-left-radius:12px;}
     .targeting-box::after{bottom:-2px;right:-2px;border-width:0 4px 4px 0;border-bottom-right-radius:12px;}
-    .laser-overlay{position:absolute;top:50%;left:5%;right:5%;height:3px;background:linear-gradient(90deg,transparent,var(--secondary),transparent);box-shadow:0 0 15px 3px rgba(59,130,246,0.6);display:none;z-index:10;animation:scanAnim 2s infinite ease-in-out;}
-    @keyframes scanAnim{0%,100%{top:35%;opacity:0}10%,90%{opacity:1}50%{top:65%}}
+    .laser-overlay{position:absolute;top:50%;left:5%;right:5%;height:3px;background:linear-gradient(90deg,transparent,var(--secondary),transparent);box-shadow:0 0 15px 3px rgba(59,130,246,0.6);display:none;z-index:10;animation:scanAnim 1.5s infinite ease-in-out;}
+    @keyframes scanAnim{0%,100%{top:27%;opacity:0}10%,90%{opacity:1}50%{top:73%}}
     .scanner-placeholder{color:var(--text-muted);font-size:1rem;font-weight:600;text-align:center;display:flex;flex-direction:column;align-items:center;gap:16px;}
     .scanner-placeholder i{font-size:3.5rem;opacity:0.5;}
 
@@ -103,21 +104,18 @@
     .hdr-b2{color:#60a5fa!important;}.hdr-b2 i{background:rgba(96,165,250,0.2);}
 
     div:where(.swal2-container) div:where(.swal2-popup){background:rgba(15,23,42,0.95);backdrop-filter:blur(20px);color:var(--text-primary);border-radius:var(--radius-lg);border:1px solid rgba(255,255,255,0.1);}
-    .pull-indicator{text-align:center;color:var(--text-secondary);font-size:0.85rem;padding:15px;opacity:0;transition:opacity 0.3s;position:absolute;top:70px;width:100%;z-index:90;font-weight:bold;}
   </style>
 </head>
 <body>
 
 <div class="topbar">
   <div class="topbar-title"><i class="fas fa-qrcode" style="margin-right:8px"></i>PT. Daya Sakti Niaga</div>
-  <span class="engine-badge" id="engineBadge">SCANNER</span>
+  <span class="engine-badge" id="engineBadge">FAST SCAN</span>
 </div>
-
-<div class="pull-indicator" id="pullIndicator"><i class="fas fa-arrow-down"></i> Lepas untuk Refresh Kamera...</div>
 
 <div class="container">
 
-  <!-- SCAN -->
+  <!-- SCAN PAGE -->
   <div id="view-scan" class="view-page active">
     <div class="card">
       <div class="card-header"><i class="fas fa-camera-viewfinder"></i>AYO SCAN AJA</div>
@@ -148,7 +146,7 @@
     </div>
   </div>
 
-  <!-- HARI INI -->
+  <!-- HARI INI PAGE -->
   <div id="view-session" class="view-page">
     <div class="card">
       <div class="card-header hdr-b1"><i class="fas fa-list-ul"></i>Data Scan - Barcode 1</div>
@@ -166,7 +164,7 @@
     </div>
   </div>
 
-  <!-- DATABASE -->
+  <!-- DATABASE PAGE -->
   <div id="view-database" class="view-page">
     <div class="card">
       <div class="card-header"><i class="fas fa-filter"></i>Filter Database</div>
@@ -192,7 +190,7 @@
     </div>
   </div>
 
-  <!-- EXPORT -->
+  <!-- EXPORT PAGE -->
   <div id="view-export" class="view-page">
     <div class="card">
       <div class="card-header"><i class="fas fa-file-export"></i>Pusat Unduhan Laporan</div>
@@ -224,116 +222,96 @@
 
 <script>
 // ══════════════════════════════════════════
-//  STORAGE
+//  STORAGE & STATE MANAGEMENT
 // ══════════════════════════════════════════
 const STORAGE_KEY = "SCMBarcodeMasterData";
 let allData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
 let scannedCodesSet = new Set(allData.map(i => i.kode));
 
-// ══════════════════════════════════════════
-//  SCANNER STATE
-// ══════════════════════════════════════════
 let isScanning    = false;
 let currentCam    = "environment";
-let lastErrorTime = 0;
+let lastScanTime  = 0;
 let isTorchOn     = false;
 let streamTrack   = null;
-let scanLoopFrame = null;
+let animFrameId   = null;
 let audioCtx      = null;
 
 const video = document.getElementById("videoElement");
-
 const Toast = Swal.mixin({
   toast:true, position:"top-end", showConfirmButton:false,
-  timer:2000, background:"rgba(15,23,42,0.95)", color:"#fff"
+  timer:1800, background:"rgba(15,23,42,0.95)", color:"#fff"
 });
 
 // ══════════════════════════════════════════
-//  DEVICE DETECTION — Hybrid Engine Logic
+//  ZXING DECODER ENGINE INITIALIZATION
 // ══════════════════════════════════════════
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-const isAndroid = /Android/i.test(navigator.userAgent);
-const hasNativeScanner = "BarcodeDetector" in window;
-
+let zxingReader = null;
 let nativeDetector = null;
-let zxingReader    = null;
 
-// Badge labeling
-if (isIOS) {
-  document.getElementById("engineBadge").innerText = "IOS PRO";
-} else if (hasNativeScanner) {
-  document.getElementById("engineBadge").innerText = "HW ACCEL";
-  nativeDetector = new BarcodeDetector({
-    formats: ["code_128","code_39","code_93","ean_13","ean_8","upc_a","upc_e","itf","codabar"]
-  });
-} else {
-  document.getElementById("engineBadge").innerText = isAndroid ? "ANDROID+" : "SW MODE";
-}
-
-// ── ZXing Hints ──────────────────────────────────────
-// iOS: proven minimal hints (TRY_HARDER + core formats)
-// Android: identical core hints — ROI crop compensates for speed
-function getZXingHints() {
+if ("BarcodeDetector" in window) {
+  document.getElementById("engineBadge").innerText = "HARDWARE ACCEL";
   try {
-    return new Map([
-      [ZXing.DecodeHintType.TRY_HARDER, true],
-      [ZXing.DecodeHintType.POSSIBLE_FORMATS, [
-        ZXing.BarcodeFormat.CODE_128,
-        ZXing.BarcodeFormat.CODE_39,
-        ZXing.BarcodeFormat.ITF,
-        ZXing.BarcodeFormat.EAN_13,
-        ZXing.BarcodeFormat.UPC_A,
-      ]],
-    ]);
-  } catch(e){ return undefined; }
+    nativeDetector = new BarcodeDetector({
+      formats: ["code_128", "code_39", "code_93", "ean_13", "ean_8", "upc_a", "upc_e", "itf", "codabar"]
+    });
+  } catch(e) { nativeDetector = null; }
 }
 
+function getZXingReader() {
+  if (!zxingReader) {
+    const hints = new Map();
+    const formats = [
+      ZXing.BarcodeFormat.CODE_128,
+      ZXing.BarcodeFormat.CODE_39,
+      ZXing.BarcodeFormat.EAN_13,
+      ZXing.BarcodeFormat.EAN_8,
+      ZXing.BarcodeFormat.ITF
+    ];
+    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+    zxingReader = new ZXing.BrowserMultiFormatReader(hints);
+  }
+  return zxingReader;
+}
+
+// ══════════════════════════════════════════
+//  AUDIO FEEDBACK
+// ══════════════════════════════════════════
 function initAudio() {
-  if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   if (audioCtx.state === "suspended") audioCtx.resume();
 }
 
-// ══════════════════════════════════════════
-//  PULL TO REFRESH
-// ══════════════════════════════════════════
-let touchStartY = 0;
-const pullIndicator = document.getElementById("pullIndicator");
-window.addEventListener("touchstart", e => {
-  if (document.getElementById("view-scan").classList.contains("active") && window.scrollY === 0)
-    touchStartY = e.touches[0].clientY;
-  else touchStartY = 0;
-}, {passive:true});
-window.addEventListener("touchmove", e => {
-  if (touchStartY > 0 && document.getElementById("view-scan").classList.contains("active")) {
-    const dy = e.touches[0].clientY - touchStartY;
-    if (dy > 80) pullIndicator.style.opacity = "1";
-    if (dy > 160) {
-      touchStartY = 0; pullIndicator.style.opacity = "0";
-      Swal.fire({title:"Menyegarkan Kamera...",timer:1000,background:"rgba(15,23,42,0.95)",color:"#fff",didOpen:()=>Swal.showLoading()}).then(()=>location.reload());
-    }
-  }
-}, {passive:true});
-window.addEventListener("touchend", () => pullIndicator.style.opacity = "0");
+function playBeep() {
+  try {
+    initAudio();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(1046.5, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.12);
+  } catch(e) {}
+}
 
 // ══════════════════════════════════════════
-//  PAGE NAV
+//  PAGE NAVIGATION
 // ══════════════════════════════════════════
 function switchPage(pageId, el) {
   if (pageId !== "view-scan" && isScanning) toggleScan();
   document.querySelectorAll(".view-page").forEach(p => p.classList.remove("active"));
   document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
   document.getElementById(pageId).classList.add("active");
-  el.classList.add("active");
+  if(el) el.classList.add("active");
   if (pageId === "view-session")  renderToday();
   if (pageId === "view-database") renderDatabase();
 }
 
 // ══════════════════════════════════════════
-//  TOGGLE SCAN — Hybrid Engine
-//  iOS    → ZXing decodeFromStream (tidak diubah sama sekali)
-//  Android native → rAF BarcodeDetector loop (agresif, tanpa throttle)
-//  Android ZXing  → rAF canvas ROI crop loop (baru, jauh lebih cepat)
+//  FAST RESPONSIVE CAMERA SCANNER
 // ══════════════════════════════════════════
 async function toggleScan() {
   const btn         = document.getElementById("btnAction");
@@ -342,23 +320,19 @@ async function toggleScan() {
   const targetBox   = document.getElementById("targetBox");
 
   if (isScanning) {
-    // ── STOP ──────────────────────────────
     isScanning = false;
     isTorchOn  = false;
     document.getElementById("btnTorch").classList.remove("active");
-    cancelAnimationFrame(scanLoopFrame);
+    if (animFrameId) cancelAnimationFrame(animFrameId);
     if (streamTrack) { streamTrack.stop(); streamTrack = null; }
     if (video.srcObject) { video.srcObject.getTracks().forEach(t => t.stop()); video.srcObject = null; }
-    if (zxingReader)  { zxingReader.reset(); zxingReader = null; }
     video.style.display     = "none";
     laser.style.display     = "none";
     targetBox.style.display = "none";
     placeholder.style.display = "flex";
     btn.innerHTML = '<i class="fas fa-play" style="margin-right:6px;"></i>SCAN';
     btn.classList.remove("stop");
-
   } else {
-    // ── START ─────────────────────────────
     initAudio();
     try {
       video.style.display     = "block";
@@ -369,189 +343,111 @@ async function toggleScan() {
       btn.classList.add("stop");
       isScanning = true;
 
-      // ── Camera stream ──────────────────
-      // iOS: resolusi proven (1280x720, facingMode ideal) — TIDAK DIUBAH
-      // Android: request lebih tinggi agar crop ROI tetap tajam
+      // Setting Resolusi HD Terarah untuk Fokus Terjaga di Android
+      const constraints = {
+        video: {
+          facingMode: { exact: "environment" },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          frameRate: { ideal: 30, max: 60 }
+        }
+      };
+
       let stream;
-      if (isIOS) {
-        // Persis seperti versi iOS original
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { ideal: currentCam }, width: { ideal: 1280 }, height: { ideal: 720 } }
-          });
-        } catch(e) {
-          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-        }
-      } else {
-        // Android: minta resolusi lebih tinggi + advanced constraints untuk kecepatan decode
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-              facingMode: { ideal: currentCam },
-              width:  { ideal: 1920, min: 640 },
-              height: { ideal: 1080, min: 480 },
-              frameRate: { ideal: 30, min: 15 },
-            }
-          });
-        } catch(e) {
-          try {
-            stream = await navigator.mediaDevices.getUserMedia({
-              video: { facingMode: { ideal: currentCam }, width: { ideal: 1280 }, height: { ideal: 720 } }
-            });
-          } catch(e2) {
-            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-          }
-        }
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+      } catch(e) {
+        // Fallback jika 'exact environment' ditolak beberapa HP
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: currentCam, width: { ideal: 1280 }, height: { ideal: 720 } }
+        });
       }
 
-      video.setAttribute("autoplay","");
-      video.setAttribute("muted","");
-      video.setAttribute("playsinline","");
       video.srcObject = stream;
       streamTrack = stream.getVideoTracks()[0];
 
-      // Autofocus continuous — Android
-      if (!isIOS) {
-        try {
-          const cap = streamTrack.getCapabilities();
-          if (cap.focusMode && cap.focusMode.includes("continuous"))
-            await streamTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
-        } catch(_) {}
-      }
+      // Terapkan Continuous Focus pada Android Kamera
+      try {
+        const cap = streamTrack.getCapabilities();
+        if (cap.focusMode && cap.focusMode.includes("continuous")) {
+          await streamTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
+        }
+      } catch(_) {}
 
       await new Promise(resolve => { video.onloadedmetadata = () => resolve(); });
       await video.play();
 
-      // ══════════════════════════════════
-      //  ENGINE SELECTION
-      // ══════════════════════════════════
-
-      if (isIOS) {
-        // ────────────────────────────────
-        //  iOS ENGINE — ZXing decodeFromStream, TIDAK DIUBAH
-        // ────────────────────────────────
-        zxingReader = new ZXing.BrowserMultiFormatReader(getZXingHints());
-        zxingReader.timeBetweenDecodingAttempts = 10;
-        zxingReader.decodeFromStream(stream, "videoElement", (result, err) => {
-          if (result)
-            processBarcodeDetected(result.getText(),
-              result.getBarcodeFormat ? result.getBarcodeFormat().toString() : "UNKNOWN");
-        });
-
-      } else if (nativeDetector) {
-        // ────────────────────────────────
-        //  ANDROID NATIVE ENGINE (BarcodeDetector / HW Accelerated)
-        //  Loop rAF tanpa throttle — secepat mungkin
-        // ────────────────────────────────
-        const nativeLoop = async () => {
-          if (!isScanning) return;
-          try {
-            const barcodes = await nativeDetector.detect(video);
-            if (barcodes.length > 0)
-              processBarcodeDetected(barcodes[0].rawValue, barcodes[0].format.toUpperCase());
-          } catch(_) {}
-          if (isScanning) scanLoopFrame = requestAnimationFrame(nativeLoop);
-        };
-        scanLoopFrame = requestAnimationFrame(nativeLoop);
-
-      } else {
-        // ────────────────────────────────
-        //  ANDROID ZXING ENGINE — Canvas ROI Crop Loop
-        //
-        //  Cara kerja:
-        //  1. Setiap frame rAF, gambar video ke canvas offscreen
-        //  2. HANYA crop area targeting-box (30% tinggi × 90% lebar video)
-        //     → ZXing hanya proses ~27% pixel, jauh lebih cepat
-        //  3. decodeFromCanvas() synchronous — tidak ada delay async
-        //  4. Setelah berhasil decode, tunggu 500ms sebelum loop lanjut
-        //     (debounce agar tidak double-fire pada barcode yang sama)
-        // ────────────────────────────────
-        zxingReader = new ZXing.BrowserMultiFormatReader(getZXingHints());
-        // Matikan delay internal ZXing — kita kontrol sendiri via rAF
-        zxingReader.timeBetweenDecodingAttempts = 0;
-
-        // Canvas offscreen — dibuat sekali, dipakai ulang
-        const roiCanvas = document.createElement("canvas");
-        const roiCtx    = roiCanvas.getContext("2d", { willReadFrequently: true });
-
-        // Throttle agar tidak proses setiap frame (setiap 2 rAF ≈ 30fps pada 60hz display)
-        let frameSkip   = 0;
-        let isDecoding  = false;
-
-        const androidZXingLoop = () => {
-          if (!isScanning) return;
-
-          frameSkip++;
-          // Proses setiap 2 frame (≈30fps). Ubah ke 1 jika ingin lebih agresif.
-          if (frameSkip < 2) {
-            scanLoopFrame = requestAnimationFrame(androidZXingLoop);
-            return;
-          }
-          frameSkip = 0;
-
-          // Tunggu video benar-benar siap
-          if (video.readyState < 2 || video.videoWidth === 0 || isDecoding) {
-            scanLoopFrame = requestAnimationFrame(androidZXingLoop);
-            return;
-          }
-
-          isDecoding = true;
-
-          const vW = video.videoWidth;
-          const vH = video.videoHeight;
-
-          // Hitung ROI sesuai targeting-box CSS:
-          //   top:35%, bottom:35% → tinggi ROI 30% dari vH
-          //   left:5%, right:5%   → lebar ROI  90% dari vW
-          const roiX = Math.floor(vW * 0.05);
-          const roiY = Math.floor(vH * 0.35);
-          const roiW = Math.floor(vW * 0.90);
-          const roiH = Math.floor(vH * 0.30);
-
-          // Resize canvas hanya jika dimensi berubah (lazy resize)
-          if (roiCanvas.width !== roiW || roiCanvas.height !== roiH) {
-            roiCanvas.width  = roiW;
-            roiCanvas.height = roiH;
-          }
-
-          // Gambar hanya ROI ke canvas — inilah kunci kecepatan
-          roiCtx.drawImage(video, roiX, roiY, roiW, roiH, 0, 0, roiW, roiH);
-
-          try {
-            // decodeFromCanvas() adalah synchronous throw-based API:
-            // - Berhasil → return Result
-            // - Gagal    → throw NotFoundException (diabaikan)
-            const result = zxingReader.decodeFromCanvas(roiCanvas);
-            if (result) {
-              const fmt = result.getBarcodeFormat ? result.getBarcodeFormat().toString() : "UNKNOWN";
-              processBarcodeDetected(result.getText(), fmt);
-              // Debounce singkat setelah berhasil scan
-              isDecoding = false;
-              if (isScanning) {
-                scanLoopFrame = requestAnimationFrame(androidZXingLoop);
-              }
-              return;
-            }
-          } catch(e) {
-            // NotFoundException normal — lanjutkan loop
-          }
-
-          isDecoding = false;
-          if (isScanning) scanLoopFrame = requestAnimationFrame(androidZXingLoop);
-        };
-
-        scanLoopFrame = requestAnimationFrame(androidZXingLoop);
-      }
+      startScanningLoop();
 
     } catch(err) {
-      Swal.fire("Kamera Gagal", "Izin belum diberikan / browser tidak support.", "error");
+      Swal.fire("Kamera Gagal", "Gagal membuka kamera. Izinkan akses kamera pada browser Android Anda.", "error");
       if (isScanning) toggleScan();
     }
   }
 }
 
 // ══════════════════════════════════════════
-//  TORCH
+//  SCAN LOOP ENGINE (DUAL ENGINE ROUTINE)
+// ══════════════════════════════════════════
+function startScanningLoop() {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+
+  const processFrame = async () => {
+    if (!isScanning) return;
+
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      // 1. Opsi Cepat Native Hardware Acceleration
+      if (nativeDetector) {
+        try {
+          const barcodes = await nativeDetector.detect(video);
+          if (barcodes.length > 0) {
+            processBarcodeDetected(barcodes[0].rawValue);
+          }
+        } catch(e) {}
+      } 
+      
+      // 2. Opsi ZXing Canvas Cropped Engine (Sangat Responsif di Semua HP)
+      if (isScanning) {
+        const vW = video.videoWidth;
+        const vH = video.videoHeight;
+
+        if (vW > 0 && vH > 0) {
+          // Crop hanya area kotak penargetan (ROI)
+          const cropX = Math.floor(vW * 0.10);
+          const cropY = Math.floor(vH * 0.25);
+          const cropW = Math.floor(vW * 0.80);
+          const cropH = Math.floor(vH * 0.50);
+
+          canvas.width = cropW;
+          canvas.height = cropH;
+
+          // Drawing area potong saja
+          ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+
+          try {
+            const reader = getZXingReader();
+            const result = reader.decodeFromCanvas(canvas);
+            if (result && result.getText()) {
+              processBarcodeDetected(result.getText());
+            }
+          } catch(e) {
+            // ZXing melempar exception jika tidak ada barcode di frame (Normal)
+          }
+        }
+      }
+    }
+
+    if (isScanning) {
+      animFrameId = requestAnimationFrame(processFrame);
+    }
+  };
+
+  animFrameId = requestAnimationFrame(processFrame);
+}
+
+// ══════════════════════════════════════════
+//  TORCH & SWITCH CAMERA
 // ══════════════════════════════════════════
 async function toggleTorch() {
   if (!isScanning || !streamTrack) return Toast.fire({icon:"warning",title:"Mulai scan dulu!"});
@@ -565,9 +461,6 @@ async function toggleTorch() {
   } catch(_) { Toast.fire({icon:"error",title:"Akses ditolak"}); }
 }
 
-// ══════════════════════════════════════════
-//  SWITCH CAMERA
-// ══════════════════════════════════════════
 function switchCamera() {
   currentCam = currentCam === "environment" ? "user" : "environment";
   if (isScanning) { toggleScan(); setTimeout(toggleScan, 300); }
@@ -575,7 +468,7 @@ function switchCamera() {
 }
 
 // ══════════════════════════════════════════
-//  MASTER DB
+//  PARSERS & MASTER DB
 // ══════════════════════════════════════════
 const DEFAULT_MASTER = {
   "1593103505404312800401050003": {jenisBarcode:"Barcode 2",panjang:305,lebar:14,potongan:24,persegi:"10.25",golongan:"10(3)"},
@@ -584,9 +477,6 @@ const DEFAULT_MASTER = {
 };
 let masterDB = { ...DEFAULT_MASTER, ...JSON.parse(localStorage.getItem("SCMMasterDB") || "{}") };
 
-// ══════════════════════════════════════════
-//  PARSERS
-// ══════════════════════════════════════════
 function parseBarcode1(raw) {
   if (raw.startsWith("86") && raw.length >= 24) {
     try {
@@ -599,296 +489,292 @@ function parseBarcode1(raw) {
       const panjang  = parseInt(l_str, 10);
       const lebar    = parseInt(w_str, 10) / 10;
       const potongan = parseInt(p_str, 10);
-      const persegi  = (panjang * lebar * potongan) / 10000;
+      const persegi  = ((panjang * lebar * potongan) / 10000).toFixed(2);
       const extNum   = parseInt(ext_str, 10);
-      const golonganDisplay = !isNaN(extNum) ? `${golongan}(${extNum.toString().padStart(3,"0")})` : golongan;
-      if (panjang > 0 && panjang < 9999 && lebar > 0 && potongan > 0)
-        return {jenisBarcode:"Barcode 1", panjang, lebar, potongan, persegi:persegi.toFixed(2), golongan:golonganDisplay};
-    } catch(_) {}
+      const golonganDisplay = !isNaN(extNum) ? `${golongan}(${extNum})` : golongan;
+
+      return {
+        jenisBarcode: "Barcode 1",
+        panjang,
+        lebar,
+        potongan,
+        persegi,
+        golongan: golonganDisplay
+      };
+    } catch(e) { return null; }
   }
   return null;
 }
 
-function parseBarcode20Digit(raw) {
-  if (raw.length === 20 && /^\d+$/.test(raw)) {
-    const gol = raw.slice(0,7).replace(/^0+/,"");
-    const p   = parseInt(raw.slice(7,10), 10);
-    const l   = parseInt(raw.slice(10,13), 10);
-    const pot = parseInt(raw.slice(13,16), 10);
-    if (p > 0 && l > 0 && pot > 0)
-      return {jenisBarcode:"Barcode 2", panjang:p, lebar:l, potongan:pot, persegi:((p*l*pot)/10000).toFixed(2), golongan:gol||raw.slice(0,7)};
-  }
+function parseBarcodeData(code) {
+  const b1 = parseBarcode1(code);
+  if (b1) return b1;
+  if (masterDB[code]) return masterDB[code];
   return null;
 }
 
 // ══════════════════════════════════════════
-//  PROCESS DETECTED
+//  DATA PROCESSING
 // ══════════════════════════════════════════
-function processBarcodeDetected(code, format) {
-  code = (code || "").trim();
-  if (!code) return;
+function processBarcodeDetected(code) {
+  const now = Date.now();
+  if (now - lastScanTime < 2000) return; // Cooldown 2 Detik Cegah Double Scan
 
   if (scannedCodesSet.has(code)) {
-    const now = Date.now();
-    if (now - lastErrorTime > 2000) {
-      triggerErrorFeedback();
-      Swal.fire({title:"DITOLAK!",text:"Barcode ini sudah pernah di-scan.",icon:"error",background:"rgba(15,23,42,0.95)",color:"#fff",confirmButtonColor:"var(--danger)"});
-      lastErrorTime = now;
-    }
+    lastScanTime = now;
+    playBeep();
+    Toast.fire({icon: "warning", title: "Barcode Sudah Terdaftar!"});
     return;
   }
 
-  const b1 = parseBarcode1(code);
-  if (b1) { scannedCodesSet.add(code); simpanData(code, format, b1); return; }
-
-  const b2 = parseBarcode20Digit(code);
-  if (b2) { scannedCodesSet.add(code); simpanData(code, format, b2); return; }
-
-  if (masterDB[code]) { scannedCodesSet.add(code); simpanData(code, format, masterDB[code]); return; }
-
-  if (code.length >= 10) promptNewMasterData(code, format);
-}
-
-function promptNewMasterData(code, format) {
-  if (isScanning) toggleScan();
-  Swal.fire({
-    title:"Master Data Baru!",
-    html:`<div style="font-size:0.85rem;color:#a78bfa;margin-bottom:15px;text-align:left;">Barcode belum dikenali:<br><b style="color:white;">${code}</b><br><br>Masukkan dimensinya 1x saja. Sistem akan mengingatnya selamanya.</div>
-    <select id="m-jenis" class="swal2-input" style="width:90%;font-size:14px;margin-bottom:8px;"><option value="Barcode 2">Barcode 2</option><option value="Barcode 1">Barcode 1</option></select>
-    <input id="m-gol" class="swal2-input" placeholder="Golongan (Cth: FFP)" style="width:90%;font-size:14px;margin-bottom:8px;">
-    <input id="m-p" type="number" class="swal2-input" placeholder="Panjang (Cth: 300)" style="width:90%;font-size:14px;margin-bottom:8px;">
-    <input id="m-l" type="number" step="0.1" class="swal2-input" placeholder="Lebar (Cth: 13.5)" style="width:90%;font-size:14px;margin-bottom:8px;">
-    <input id="m-pot" type="number" class="swal2-input" placeholder="PCS (Cth: 24)" style="width:90%;font-size:14px;margin-bottom:8px;">`,
-    background:"rgba(15,23,42,0.95)",color:"#fff",
-    showCancelButton:true,confirmButtonText:'<i class="fas fa-save"></i> Simpan',cancelButtonText:"Batal",confirmButtonColor:"var(--success)",
-    preConfirm: () => {
-      const j   = document.getElementById("m-jenis").value;
-      const g   = document.getElementById("m-gol").value.trim();
-      const p   = parseFloat(document.getElementById("m-p").value);
-      const l   = parseFloat(document.getElementById("m-l").value);
-      const pot = parseInt(document.getElementById("m-pot").value);
-      if (!g || isNaN(p) || isNaN(l) || isNaN(pot)) { Swal.showValidationMessage("Semua kolom wajib diisi!"); return false; }
-      return {jenisBarcode:j, golongan:g, panjang:p, lebar:l, potongan:pot, persegi:((p*l*pot)/10000).toFixed(2)};
-    }
-  }).then(res => {
-    if (res.isConfirmed) {
-      masterDB[code] = res.value;
-      localStorage.setItem("SCMMasterDB", JSON.stringify(masterDB));
-      scannedCodesSet.add(code);
-      simpanData(code, format, res.value);
-    }
-    if (document.getElementById("view-scan").classList.contains("active")) setTimeout(toggleScan, 500);
-  });
-}
-
-// ══════════════════════════════════════════
-//  MANUAL INPUT
-// ══════════════════════════════════════════
-function inputManual() {
-  const val = document.getElementById("manualData").value.trim();
-  if (!val) return Toast.fire({icon:"error",title:"Kode kosong!"});
-  if (scannedCodesSet.has(val)) { triggerErrorFeedback(); return Swal.fire("Ditolak!","Barcode ini sudah ada.","error"); }
-  processBarcodeDetected(val, "MANUAL");
-  document.getElementById("manualData").value = "";
-}
-
-// ══════════════════════════════════════════
-//  FEEDBACK
-// ══════════════════════════════════════════
-function triggerFeedback() {
-  if (navigator.vibrate) navigator.vibrate([30]);
-  if (audioCtx) {
-    try {
-      const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-      osc.connect(gain); gain.connect(audioCtx.destination);
-      osc.type = "square"; osc.frequency.setValueAtTime(3500, audioCtx.currentTime);
-      gain.gain.setValueAtTime(0, audioCtx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.005);
-      gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.04);
-      osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.04);
-    } catch(_) {}
+  const parsed = parseBarcodeData(code);
+  if (!parsed) {
+    lastScanTime = now;
+    playBeep();
+    Toast.fire({icon: "error", title: "Format Barcode Tidak Dikenal!"});
+    return;
   }
-  const box = document.getElementById("targetBox");
-  box.style.borderColor = "var(--success)"; box.style.filter = "drop-shadow(0 0 15px var(--success))";
-  setTimeout(() => { box.style.borderColor = "var(--accent)"; box.style.filter = "drop-shadow(0 0 8px var(--accent))"; }, 150);
-}
-function triggerErrorFeedback() {
-  if (navigator.vibrate) navigator.vibrate([100,50,100]);
-  if (audioCtx) {
-    try {
-      const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-      osc.connect(gain); gain.connect(audioCtx.destination);
-      osc.type = "sawtooth"; osc.frequency.setValueAtTime(300, audioCtx.currentTime);
-      gain.gain.setValueAtTime(0, audioCtx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.01);
-      gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.15);
-      osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.15);
-    } catch(_) {}
-  }
-  const box = document.getElementById("targetBox");
-  box.style.borderColor = "var(--danger)"; box.style.filter = "drop-shadow(0 0 15px var(--danger))";
-  setTimeout(() => { box.style.borderColor = "var(--accent)"; box.style.filter = "drop-shadow(0 0 8px var(--accent))"; }, 200);
-}
 
-// ══════════════════════════════════════════
-//  SIMPAN DATA
-// ══════════════════════════════════════════
-function simpanData(kode, fmt, parsedData) {
-  const nowDate = new Date();
-  const tgl = new Date(nowDate.getTime() - nowDate.getTimezoneOffset()*60000).toISOString().split("T")[0];
-  const newData = {
-    id:Date.now(), scannedAt:Date.now(), kode, format:fmt,
-    jenis:parsedData.jenisBarcode,
-    panjang:parsedData.panjang, lebar:parsedData.lebar,
-    potongan:parsedData.potongan, persegi:parsedData.persegi,
-    golongan:parsedData.golongan, tanggal:tgl,
-    jam:nowDate.toTimeString().split(" ")[0],
+  lastScanTime = now;
+  playBeep();
+  const today = new Date();
+  const dateStr = today.toISOString().split("T")[0];
+  const timeStr = today.toTimeString().split(" ")[0].slice(0, 5);
+
+  const newItem = {
+    id: now,
+    kode: code,
+    jenis: parsed.jenisBarcode,
+    golongan: parsed.golongan,
+    panjang: parsed.panjang,
+    lebar: parsed.lebar,
+    potongan: parsed.potongan,
+    persegi: parsed.persegi,
+    tanggal: dateStr,
+    jam: timeStr
   };
-  allData.push(newData);
+
+  allData.unshift(newItem);
+  scannedCodesSet.add(code);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(allData));
-  triggerFeedback();
-  Toast.fire({icon:"success",title:`Akurat! Masuk ke ${newData.jenis}`});
-  if (document.getElementById("view-session").classList.contains("active"))  renderToday();
-  if (document.getElementById("view-database").classList.contains("active")) renderDatabase();
+
+  Toast.fire({icon: "success", title: `Berhasil Scan: ${parsed.golongan}`});
 }
 
-// ══════════════════════════════════════════
-//  RENDER TABLES
-// ══════════════════════════════════════════
-function formatTgl(tgl) {
-  if (!tgl || tgl==="-") return "-";
-  const p = tgl.split("-");
-  return p.length===3 ? `${p[2]}/${p[1]}/${p[0].substring(2)}` : tgl;
+function inputManual() {
+  const input = document.getElementById("manualData");
+  const val = input.value.trim();
+  if (!val) return;
+  processBarcodeDetected(val);
+  input.value = "";
 }
 
-function createTableRows(dataArray, tableIdStr) {
-  const tbody = document.getElementById(tableIdStr);
-  tbody.innerHTML = "";
-  if (!dataArray.length) {
-    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-muted);">Belum ada data di daftar ini</td></tr>`;
-    return;
+function deleteItem(id) {
+  const idx = allData.findIndex(item => item.id === id);
+  if (idx !== -1) {
+    scannedCodesSet.delete(allData[idx].kode);
+    allData.splice(idx, 1);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(allData));
+    renderToday();
+    renderDatabase();
+    Toast.fire({icon:"info", title:"Data terhapus"});
   }
-  const isDb = tableIdStr.includes("Db");
-  dataArray.forEach((i, idx) => {
-    const tr = document.createElement("tr");
-    const kodeDisplay = `<span class="badge">${i.kode.length>12?i.kode.substring(0,12)+"…":i.kode}</span>`;
-    if (isDb) {
-      tr.innerHTML = `<td>${idx+1}</td><td>${kodeDisplay}</td><td><b>${i.golongan}</b></td><td>${i.panjang}</td><td>${i.lebar}</td><td>${i.potongan}</td><td>${i.persegi}</td><td>${formatTgl(i.tanggal)}</td><td>${i.jam.substring(0,5)}</td><td><button class="btn-del" onclick="hapus(${i.id},'db')"><i class="fas fa-trash"></i></button></td>`;
-    } else {
-      tr.innerHTML = `<td>${idx+1}</td><td>${kodeDisplay}</td><td><b>${i.golongan}</b></td><td>${i.panjang}</td><td>${i.lebar}</td><td>${i.potongan}</td><td>${i.persegi}</td><td>${i.jam.substring(0,5)}</td><td><button class="btn-del" onclick="hapus(${i.id},'today')"><i class="fas fa-trash"></i></button></td>`;
-    }
-    tbody.appendChild(tr);
-  });
-}
-
-function renderToday() {
-  const nowDate = new Date();
-  const hariIni = new Date(nowDate.getTime()-nowDate.getTimezoneOffset()*60000).toISOString().split("T")[0];
-  ["Barcode 1","Barcode 2"].forEach((jenis,i) => {
-    const d = allData.filter(x=>x.tanggal===hariIni&&x.jenis===jenis).sort((a,b)=>b.scannedAt-a.scannedAt);
-    createTableRows(d, `tableToday${i+1}`);
-  });
-}
-
-function renderDatabase() {
-  const start  = document.getElementById("start").value;
-  const end    = document.getElementById("end").value;
-  const search = document.getElementById("search").value.toLowerCase();
-  const filtered = allData.filter(i => {
-    if (start && i.tanggal < start) return false;
-    if (end   && i.tanggal > end)   return false;
-    if (search && !i.kode.toLowerCase().includes(search) && !i.golongan.toLowerCase().includes(search)) return false;
-    return true;
-  });
-  ["Barcode 1","Barcode 2"].forEach((jenis,i) => {
-    const d = filtered.filter(x=>x.jenis===jenis).sort((a,b)=>b.scannedAt-a.scannedAt);
-    createTableRows(d, `tableDb${i+1}`);
-  });
-}
-
-function hapus(id, source) {
-  const item = allData.find(i=>i.id===id);
-  if (!item) return;
-  Swal.fire({
-    title:"Hapus Data?",text:"Data akan dihapus permanen.",icon:"warning",
-    showCancelButton:true,confirmButtonColor:"var(--danger)",cancelButtonColor:"rgba(255,255,255,0.1)",
-    confirmButtonText:"Ya, Hapus",cancelButtonText:"Batal"
-  }).then(res => {
-    if (res.isConfirmed) {
-      allData = allData.filter(i=>i.id!==id);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(allData));
-      scannedCodesSet.delete(item.kode);
-      renderToday(); renderDatabase();
-    }
-  });
 }
 
 function hapusSemuaData() {
   Swal.fire({
-    title:"RESET TOTAL?",text:"Seluruh data akan dihapus total!",icon:"warning",
-    showCancelButton:true,confirmButtonColor:"var(--danger)",cancelButtonColor:"rgba(255,255,255,0.1)",
-    confirmButtonText:"Ya, Hapus Semua",cancelButtonText:"Batal"
-  }).then(res => {
-    if (res.isConfirmed) {
-      localStorage.removeItem(STORAGE_KEY); localStorage.removeItem("SCMMasterDB");
-      allData = []; scannedCodesSet.clear(); masterDB = {...DEFAULT_MASTER};
-      renderToday(); renderDatabase();
-      Toast.fire({icon:"success",title:"Aplikasi Bersih!"});
+    title: 'Hapus Semua Data?',
+    text: "Semua data scan di memori HP ini akan dibersihkan!",
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#ef4444',
+    confirmButtonText: 'Ya, Bersihkan!'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      allData = [];
+      scannedCodesSet.clear();
+      localStorage.removeItem(STORAGE_KEY);
+      renderToday();
+      renderDatabase();
+      Swal.fire('Selesai!', 'Memori berhasil dikosongkan.', 'success');
     }
   });
 }
 
 // ══════════════════════════════════════════
-//  EXPORT
+//  RENDERING TABLES
 // ══════════════════════════════════════════
-function downloadExcelHarian() {
-  const n = new Date();
-  const h = new Date(n.getTime()-n.getTimezoneOffset()*60000).toISOString().split("T")[0];
-  const d = allData.filter(i=>i.tanggal===h);
-  if (!d.length) return Swal.fire("Kosong","Tidak ada data hari ini.","info");
-  exportToExcel(d, "Harian_"+h);
-}
-function downloadExcelSemua() {
-  if (!allData.length) return Swal.fire("Kosong","Database kosong.","info");
-  exportToExcel(allData, "Master_Data");
-}
-function exportToExcel(dataArray, label) {
-  const wb = XLSX.utils.book_new();
-  ["Barcode 1","Barcode 2"].forEach(type => {
-    const td = dataArray.filter(i=>i.jenis===type).sort((a,b)=>a.scannedAt-b.scannedAt);
-    if (!td.length) return;
-    const isB2 = type==="Barcode 2";
-    const dt = td.map((i,idx) => ({
-      No:idx+1, "Kode Barcode":i.kode, Golongan:i.golongan,
-      Panjang:i.panjang, Lebar:i.lebar,
-      [isB2?"PCS":"Potongan"]:i.potongan,
-      "Persegi (m2)":i.persegi, Tanggal:formatTgl(i.tanggal), Jam:i.jam
-    }));
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dt), type);
+function renderToday() {
+  const todayStr = new Date().toISOString().split("T")[0];
+  const todayItems = allData.filter(i => i.tanggal === todayStr);
+
+  const t1 = document.getElementById("tableToday1");
+  const t2 = document.getElementById("tableToday2");
+
+  let h1 = "", h2 = "";
+  let n1 = 1, n2 = 1;
+
+  todayItems.forEach(i => {
+    if (i.jenis === "Barcode 1") {
+      h1 += `<tr>
+        <td>${n1++}</td>
+        <td><span class="badge">${i.kode}</span></td>
+        <td>${i.golongan}</td>
+        <td>${i.panjang}</td>
+        <td>${i.lebar}</td>
+        <td>${i.potongan}</td>
+        <td>${i.persegi}</td>
+        <td>${i.jam}</td>
+        <td><button class="btn-del" onclick="deleteItem(${i.id})"><i class="fas fa-trash"></i></button></td>
+      </tr>`;
+    } else {
+      h2 += `<tr>
+        <td>${n2++}</td>
+        <td><span class="badge">${i.kode}</span></td>
+        <td>${i.golongan}</td>
+        <td>${i.panjang}</td>
+        <td>${i.lebar}</td>
+        <td>${i.potongan}</td>
+        <td>${i.persegi}</td>
+        <td>${i.jam}</td>
+        <td><button class="btn-del" onclick="deleteItem(${i.id})"><i class="fas fa-trash"></i></button></td>
+      </tr>`;
+    }
   });
-  XLSX.writeFile(wb, `Export_SCM_${label}_${Date.now()}.xlsx`);
+
+  t1.innerHTML = h1 || `<tr><td colspan="9" style="text-align:center">Kosong</td></tr>`;
+  t2.innerHTML = h2 || `<tr><td colspan="9" style="text-align:center">Kosong</td></tr>`;
 }
+
+function renderDatabase() {
+  const start = document.getElementById("start").value;
+  const end = document.getElementById("end").value;
+  const q = document.getElementById("search").value.toLowerCase();
+
+  let filtered = allData.filter(i => {
+    let mDate = true;
+    if (start && i.tanggal < start) mDate = false;
+    if (end && i.tanggal > end) mDate = false;
+    let mQ = true;
+    if (q) {
+      mQ = i.kode.toLowerCase().includes(q) || i.golongan.toLowerCase().includes(q);
+    }
+    return mDate && mQ;
+  });
+
+  const t1 = document.getElementById("tableDb1");
+  const t2 = document.getElementById("tableDb2");
+
+  let h1 = "", h2 = "";
+  let n1 = 1, n2 = 1;
+
+  filtered.forEach(i => {
+    if (i.jenis === "Barcode 1") {
+      h1 += `<tr>
+        <td>${n1++}</td>
+        <td><span class="badge">${i.kode}</span></td>
+        <td>${i.golongan}</td>
+        <td>${i.panjang}</td>
+        <td>${i.lebar}</td>
+        <td>${i.potongan}</td>
+        <td>${i.persegi}</td>
+        <td>${i.tanggal}</td>
+        <td>${i.jam}</td>
+        <td><button class="btn-del" onclick="deleteItem(${i.id})"><i class="fas fa-trash"></i></button></td>
+      </tr>`;
+    } else {
+      h2 += `<tr>
+        <td>${n2++}</td>
+        <td><span class="badge">${i.kode}</span></td>
+        <td>${i.golongan}</td>
+        <td>${i.panjang}</td>
+        <td>${i.lebar}</td>
+        <td>${i.potongan}</td>
+        <td>${i.persegi}</td>
+        <td>${i.tanggal}</td>
+        <td>${i.jam}</td>
+        <td><button class="btn-del" onclick="deleteItem(${i.id})"><i class="fas fa-trash"></i></button></td>
+      </tr>`;
+    }
+  });
+
+  t1.innerHTML = h1 || `<tr><td colspan="10" style="text-align:center">Data Tidak Ditemukan</td></tr>`;
+  t2.innerHTML = h2 || `<tr><td colspan="10" style="text-align:center">Data Tidak Ditemukan</td></tr>`;
+}
+
+// ══════════════════════════════════════════
+//  EXPORTS (EXCEL & PDF)
+// ══════════════════════════════════════════
+function generateExcel(items, filename) {
+  const wb = XLSX.utils.book_new();
+
+  const b1Data = items.filter(i => i.jenis === "Barcode 1").map((i, idx) => ({
+    "No": idx + 1, "Kode": i.kode, "Golongan": i.golongan,
+    "Panjang": i.panjang, "Lebar": i.lebar, "Potongan": i.potongan,
+    "M²": parseFloat(i.persegi), "Tanggal": i.tanggal, "Jam": i.jam
+  }));
+
+  const b2Data = items.filter(i => i.jenis === "Barcode 2").map((i, idx) => ({
+    "No": idx + 1, "Kode": i.kode, "Golongan": i.golongan,
+    "Panjang": i.panjang, "Lebar": i.lebar, "PCS": i.potongan,
+    "M²": parseFloat(i.persegi), "Tanggal": i.tanggal, "Jam": i.jam
+  }));
+
+  const ws1 = XLSX.utils.json_to_sheet(b1Data.length ? b1Data : [{}]);
+  const ws2 = XLSX.utils.json_to_sheet(b2Data.length ? b2Data : [{}]);
+
+  XLSX.utils.book_append_sheet(wb, ws1, "Barcode 1");
+  XLSX.utils.book_append_sheet(wb, ws2, "Barcode 2");
+  XLSX.writeFile(wb, filename);
+}
+
+function downloadExcelHarian() {
+  const todayStr = new Date().toISOString().split("T")[0];
+  generateExcel(allData.filter(i => i.tanggal === todayStr), `Scan_Harian_${todayStr}.xlsx`);
+}
+
+function downloadExcelSemua() {
+  generateExcel(allData, `Master_Database_Scan.xlsx`);
+}
+
+function generatePDF(items, title, filename) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.text(title, 14, 15);
+
+  const b1Data = items.filter(i => i.jenis === "Barcode 1").map((i, idx) => [
+    idx + 1, i.kode, i.golongan, i.panjang, i.lebar, i.potongan, i.persegi, i.jam
+  ]);
+
+  doc.text("Data Barcode 1", 14, 25);
+  doc.autoTable({
+    startY: 30,
+    head: [['No', 'Kode', 'Gol', 'P', 'L', 'Pot', 'M²', 'Jam']],
+    body: b1Data,
+  });
+
+  const b2Data = items.filter(i => i.jenis === "Barcode 2").map((i, idx) => [
+    idx + 1, i.kode, i.golongan, i.panjang, i.lebar, i.potongan, i.persegi, i.jam
+  ]);
+
+  const finalY = doc.lastAutoTable.finalY || 40;
+  doc.text("Data Barcode 2", 14, finalY + 15);
+  doc.autoTable({
+    startY: finalY + 20,
+    head: [['No', 'Kode', 'Gol', 'P', 'L', 'PCS', 'M²', 'Jam']],
+    body: b2Data,
+  });
+
+  doc.save(filename);
+}
+
 function downloadPDFHarian() {
-  const n = new Date();
-  const h = new Date(n.getTime()-n.getTimezoneOffset()*60000).toISOString().split("T")[0];
-  const d = allData.filter(i=>i.tanggal===h);
-  if (!d.length) return Swal.fire("Kosong","Tidak ada data hari ini.","info");
-  exportToPDF(d, "Harian_"+h);
+  const todayStr = new Date().toISOString().split("T")[0];
+  generatePDF(allData.filter(i => i.tanggal === todayStr), `Laporan Scan Harian (${todayStr})`, `Scan_Harian_${todayStr}.pdf`);
 }
+
 function downloadPDFSemua() {
-  if (!allData.length) return Swal.fire("Kosong","Database kosong.","info");
-  exportToPDF(allData, "Master_Data");
-}
-function exportToPDF(dataArray, label) {
-  const {jsPDF} = window.jspdf;
-  const doc = new jsPDF("p","pt","a4");
-  doc.setFontSize(14); doc.text("Laporan Data Scan - PT. Daya Sakti Niaga",40,40);
-  doc.setFontSize(10); doc.setTextColor(100); doc.text(`Tipe: ${label.replace(/_/g," ")}`,40,55);
-  const rows = dataArray.filter(i=>i.jenis!=="Barcode 3")
-    .sort((a,b)=>(a.jenis||"").localeCompare(b.jenis||""))
-    .map((i,idx)=>[idx+1,i.jenis,i.kode,i.golongan,i.panjang,i.lebar,i.potongan,i.persegi,formatTgl(i.tanggal)]);
-  doc.autoTable({head:[["No","Jenis","Kode","Gol","P","L","Pot/PCS","M2","Tanggal"]],body:rows,startY:70,styles:{fontSize:8},headStyles:{fillColor:[139,92,246]}});
-  doc.save(`Export_SCM_${label}_${Date.now()}.pdf`);
+  generatePDF(allData, "Master Database Laporan Scan", `Master_Database_Scan.pdf`);
 }
 </script>
 </body>
