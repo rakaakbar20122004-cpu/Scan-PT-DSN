@@ -1,202 +1,894 @@
-<!-- Full optimized implementation -->
-<!DOCTYPE html>
+<!doctype html>
 <html lang="id">
 <head>
-  <!-- All existing head elements -->
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <title>Scanner - PT. Daya Sakti Niaga</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <script type="text/javascript" src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+  <style>
+    :root {
+      --primary:#8b5cf6;--primary-light:#a78bfa;
+      --secondary:#3b82f6;--accent:#ec4899;
+      --success:#10b981;--warning:#f59e0b;--danger:#ef4444;
+      --glass-bg:rgba(255,255,255,0.05);
+      --glass-border:rgba(255,255,255,0.15);
+      --glass-blur:blur(20px);
+      --text-primary:#ffffff;
+      --text-secondary:rgba(255,255,255,0.7);
+      --text-muted:rgba(255,255,255,0.4);
+      --radius-lg:24px;--radius-md:16px;
+    }
+    *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+    html{-webkit-text-size-adjust:100%;}
+    html,body{width:100%;min-height:100vh;overflow-x:hidden;background:#020617;color:var(--text-primary);font-family:"Plus Jakarta Sans",sans-serif;}
+    body::before{content:"";position:fixed;top:0;left:0;width:100%;height:100%;background:radial-gradient(circle at 15% 50%,#1e1b4b,transparent 50%),radial-gradient(circle at 85% 30%,#312e81,transparent 50%),radial-gradient(circle at 50% 80%,#0f172a,transparent 50%);z-index:-1;}
+    button,input{touch-action:manipulation;}
+
+    .topbar{background:rgba(2,6,23,0.8);backdrop-filter:var(--glass-blur);border-bottom:1px solid var(--glass-border);padding:16px 20px;padding-top:max(16px,env(safe-area-inset-top));display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+    .topbar-title{font-size:1.15rem;font-family:"Space Grotesk",sans-serif;font-weight:700;background:linear-gradient(135deg,var(--secondary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+    .engine-badge{font-size:0.65rem;background:linear-gradient(135deg,rgba(16,185,129,0.2),rgba(16,185,129,0.05));color:#34d399;padding:6px 12px;border-radius:20px;font-weight:800;border:1px solid rgba(16,185,129,0.3);}
+
+    .bottom-nav{position:fixed;bottom:0;left:0;width:100%;background:rgba(15,23,42,0.95);backdrop-filter:var(--glass-blur);border-top:1px solid var(--glass-border);display:flex;justify-content:space-around;padding:12px 10px calc(12px + env(safe-area-inset-bottom)) 10px;z-index:999;box-shadow:0 -10px 30px rgba(0,0,0,0.8);}
+    .nav-item{display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--text-muted);cursor:pointer;flex:1;}
+    .nav-item i{font-size:1.3rem;transition:transform 0.2s ease;}
+    .nav-item span{font-size:0.65rem;font-weight:700;text-transform:uppercase;}
+    .nav-item.active{color:var(--primary-light);}
+    .nav-item.active i{transform:translateY(-3px) scale(1.1);filter:drop-shadow(0 0 8px rgba(167,139,250,0.6));}
+
+    .view-page{display:none;opacity:0;animation:fadeIn 0.4s forwards;}
+    .view-page.active{display:flex;flex-direction:column;gap:24px;opacity:1;}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+    .container{padding:20px 16px;padding-bottom:calc(120px + env(safe-area-inset-bottom));max-width:800px;margin:0 auto;width:100%;position:relative;}
+    .card{background:var(--glass-bg);backdrop-filter:var(--glass-blur);border-radius:var(--radius-lg);padding:20px;border:1px solid var(--glass-border);}
+    .card-header{font-weight:700;margin-bottom:20px;font-size:1.1rem;display:flex;align-items:center;gap:12px;color:var(--text-primary);}
+    .card-header i{color:var(--primary-light);background:rgba(139,92,246,0.2);padding:8px;border-radius:8px;}
+
+    .scanner-wrapper{position:relative;margin-bottom:28px;}
+    .scanner-container{position:relative;width:100%;border-radius:var(--radius-md);overflow:hidden;background-color:#000;aspect-ratio:3/4;max-height:60vh;display:flex;align-items:center;justify-content:center;border:2px solid rgba(139,92,246,0.3);box-shadow:0 0 30px rgba(139,92,246,0.15);}
+    #videoElement{width:100%;height:100%;object-fit:cover;display:none;}
+    .targeting-box{position:absolute;top:35%;left:5%;right:5%;bottom:35%;border-radius:12px;pointer-events:none;z-index:5;box-shadow:0 0 0 4000px rgba(0,0,0,0.65);display:none;}
+    .targeting-box::before,.targeting-box::after{content:"";position:absolute;width:45px;height:45px;border-color:var(--accent);border-style:solid;filter:drop-shadow(0 0 8px var(--accent));}
+    .targeting-box::before{top:-2px;left:-2px;border-width:4px 0 0 4px;border-top-left-radius:12px;}
+    .targeting-box::after{bottom:-2px;right:-2px;border-width:0 4px 4px 0;border-bottom-right-radius:12px;}
+    .laser-overlay{position:absolute;top:50%;left:5%;right:5%;height:3px;background:linear-gradient(90deg,transparent,var(--secondary),transparent);box-shadow:0 0 15px 3px rgba(59,130,246,0.6);display:none;z-index:10;animation:scanAnim 2s infinite ease-in-out;}
+    @keyframes scanAnim{0%,100%{top:35%;opacity:0}10%,90%{opacity:1}50%{top:65%}}
+    .scanner-placeholder{color:var(--text-muted);font-size:1rem;font-weight:600;text-align:center;display:flex;flex-direction:column;align-items:center;gap:16px;}
+    .scanner-placeholder i{font-size:3.5rem;opacity:0.5;}
+
+    .floating-controls{display:flex;gap:12px;background:rgba(15,23,42,0.9);backdrop-filter:blur(24px);padding:8px;border-radius:100px;margin-top:-28px;position:relative;z-index:20;box-shadow:0 10px 30px rgba(0,0,0,0.8);border:1px solid rgba(255,255,255,0.1);width:90%;margin-left:auto;margin-right:auto;}
+    .btn{border:none;font-weight:700;font-size:0.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-primary);font-family:inherit;min-height:50px;}
+    .btn:active{transform:scale(0.95);}
+    .btn-icon{width:50px;border-radius:50%;background:var(--glass-bg);border:1px solid var(--glass-border);font-size:1.2rem;}
+    .btn-icon.active{background:var(--warning);color:#000;border-color:var(--warning);}
+    .btn-scan{flex:1;background:linear-gradient(135deg,var(--primary),var(--secondary));border-radius:100px;margin:0 4px;border:1px solid rgba(255,255,255,0.2);}
+    .btn-scan.stop{background:linear-gradient(135deg,var(--danger),#be123c);}
+
+    .input-group{margin-bottom:16px;}
+    .input-group label{display:block;font-size:0.75rem;font-weight:700;color:var(--text-secondary);margin-bottom:8px;text-transform:uppercase;}
+    .form-control{width:100%;padding:14px;border:1px solid var(--glass-border);border-radius:var(--radius-md);outline:none;font-size:15px;background:rgba(0,0,0,0.4);color:var(--text-primary);font-family:inherit;}
+    .form-control:focus{border-color:var(--primary-light);}
+    .manual-input-wrapper{display:flex;gap:8px;}
+    .manual-input-wrapper input{flex:1;}
+    .manual-input-wrapper .btn-add{background:rgba(255,255,255,0.1);border:1px solid var(--glass-border);border-radius:var(--radius-md);padding:0 20px;}
+
+    .table-wrapper{width:100%;overflow-x:auto;border-radius:var(--radius-md);background:rgba(0,0,0,0.3);border:1px solid var(--glass-border);}
+    table{width:100%;border-collapse:collapse;white-space:nowrap;}
+    th,td{padding:12px 14px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.05);font-size:0.85rem;}
+    th{background:rgba(15,23,42,0.95);font-weight:700;color:var(--text-secondary);font-size:0.7rem;text-transform:uppercase;}
+    .badge{background:linear-gradient(135deg,rgba(59,130,246,0.2),rgba(139,92,246,0.2));color:#e0e7ff;padding:5px 8px;border-radius:6px;font-weight:600;font-size:0.75rem;font-family:"Space Grotesk",monospace;}
+    .btn-del{color:#fca5a5;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+
+    .export-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;}
+    .btn-export-big{background:rgba(255,255,255,0.05);border:1px solid var(--glass-border);width:100%;padding:16px 10px;border-radius:var(--radius-lg);display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;}
+    .btn-export-big i{font-size:1.8rem;}
+    .btn-export-big.excel{background:linear-gradient(135deg,rgba(16,185,129,0.2),rgba(16,185,129,0.05));border-color:rgba(16,185,129,0.3);color:#34d399;}
+    .btn-export-big.pdf{background:linear-gradient(135deg,rgba(239,68,68,0.2),rgba(239,68,68,0.05));border-color:rgba(239,68,68,0.3);color:#fca5a5;}
+    .btn-export-big.blue{background:linear-gradient(135deg,rgba(59,130,246,0.2),rgba(59,130,246,0.05));border-color:rgba(59,130,246,0.3);color:#60a5fa;}
+    .btn-danger-zone{background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.4);color:#fca5a5;margin-top:10px;}
+
+    .filter-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    .hdr-b1{color:#a78bfa!important;}.hdr-b1 i{background:rgba(167,139,250,0.2);}
+    .hdr-b2{color:#60a5fa!important;}.hdr-b2 i{background:rgba(96,165,250,0.2);}
+
+    div:where(.swal2-container) div:where(.swal2-popup){background:rgba(15,23,42,0.95);backdrop-filter:blur(20px);color:var(--text-primary);border-radius:var(--radius-lg);border:1px solid rgba(255,255,255,0.1);}
+    .pull-indicator{text-align:center;color:var(--text-secondary);font-size:0.85rem;padding:15px;opacity:0;transition:opacity 0.3s;position:absolute;top:70px;width:100%;z-index:90;font-weight:bold;}
+  </style>
 </head>
 <body>
-  <!-- All existing HTML remains unchanged -->
 
-  <script>
-    // All existing JavaScript remains unchanged until the toggleScan function
-    // Then replace with the following optimized version:
+<div class="topbar">
+  <div class="topbar-title"><i class="fas fa-qrcode" style="margin-right:8px"></i>PT. Daya Sakti Niaga</div>
+  <span class="engine-badge" id="engineBadge">SCANNER</span>
+</div>
 
-    // ── Optimized Barcode Detection ────────────────────────────────────────────
-    //  Improved Android Performance:
-    //  - Added dynamic frame rate adjustment
-    //  - Implemented adaptive ROI cropping
-    //  - Added performance monitoring
-    //  - Enhanced error recovery
+<div class="pull-indicator" id="pullIndicator"><i class="fas fa-arrow-down"></i> Lepas untuk Refresh Kamera...</div>
 
-    async function toggleScan() {
-      // Existing code...
-      
-      // Add performance monitoring
-      const startTime = performance.now();
-      let frameCount = 0;
-      
-      // Frame rate control
-      let lastFrameTime = 0;
-      const minFrameInterval = 1000 / 30; // 30fps minimum
-      
-      // ROI configuration
-      let roiRect = null;
-      
-      // Adaptive detection parameters
-      let detectionQuality = 1.0;
-      let roiScaleFactor = 1.0;
-      
-      async function detectLoop() {
-        if (!isScanning) return;
-        
+<div class="container">
+
+  <!-- SCAN -->
+  <div id="view-scan" class="view-page active">
+    <div class="card">
+      <div class="card-header"><i class="fas fa-camera-viewfinder"></i>AYO SCAN AJA</div>
+      <div class="scanner-wrapper">
+        <div class="scanner-container" id="scannerBox">
+          <div class="scanner-placeholder" id="placeholderMsg">
+            <i class="fas fa-video-slash"></i><span>Kamera Offline</span>
+          </div>
+          <video id="videoElement" autoplay playsinline muted></video>
+          <div class="targeting-box" id="targetBox"></div>
+          <div class="laser-overlay" id="laser"></div>
+        </div>
+        <div class="floating-controls">
+          <button class="btn btn-icon" id="btnTorch" onclick="toggleTorch()"><i class="fas fa-bolt"></i></button>
+          <button class="btn btn-scan" id="btnAction" onclick="toggleScan()">
+            <i class="fas fa-play" style="margin-right:6px"></i>SCAN
+          </button>
+          <button class="btn btn-icon" onclick="switchCamera()"><i class="fas fa-camera-rotate"></i></button>
+        </div>
+      </div>
+      <div class="input-group" style="margin-top:10px">
+        <label>Input Manual (Darurat)</label>
+        <div class="manual-input-wrapper">
+          <input type="text" id="manualData" class="form-control" placeholder="Ketik barcode..." inputmode="text"/>
+          <button class="btn btn-add" onclick="inputManual()"><i class="fas fa-plus"></i></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HARI INI -->
+  <div id="view-session" class="view-page">
+    <div class="card">
+      <div class="card-header hdr-b1"><i class="fas fa-list-ul"></i>Data Scan - Barcode 1</div>
+      <div class="table-wrapper">
+        <table><thead><tr><th>No</th><th>Kode</th><th>Golongan</th><th>Panjang</th><th>Lebar</th><th>Potongan</th><th>M²</th><th>Jam</th><th>Aksi</th></tr></thead>
+        <tbody id="tableToday1"></tbody></table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header hdr-b2"><i class="fas fa-list-ul"></i>Data Scan - Barcode 2</div>
+      <div class="table-wrapper">
+        <table><thead><tr><th>No</th><th>Kode</th><th>Golongan</th><th>Panjang</th><th>Lebar</th><th>PCS</th><th>M²</th><th>Jam</th><th>Aksi</th></tr></thead>
+        <tbody id="tableToday2"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- DATABASE -->
+  <div id="view-database" class="view-page">
+    <div class="card">
+      <div class="card-header"><i class="fas fa-filter"></i>Filter Database</div>
+      <div class="filter-grid">
+        <div class="input-group"><label>Dari Tanggal</label><input type="date" class="form-control" id="start" onchange="renderDatabase()"/></div>
+        <div class="input-group"><label>Sampai Tanggal</label><input type="date" class="form-control" id="end" onchange="renderDatabase()"/></div>
+      </div>
+      <div class="input-group"><label>Pencarian Umum</label><input type="search" class="form-control" id="search" placeholder="Cari barcode / golongan..." onkeyup="renderDatabase()"/></div>
+    </div>
+    <div class="card">
+      <div class="card-header hdr-b1"><i class="fas fa-archive"></i>Database - Barcode 1</div>
+      <div class="table-wrapper">
+        <table><thead><tr><th>No</th><th>Kode</th><th>Golongan</th><th>Panjang</th><th>Lebar</th><th>Potongan</th><th>M²</th><th>Tgl</th><th>Jam</th><th>Aksi</th></tr></thead>
+        <tbody id="tableDb1"></tbody></table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header hdr-b2"><i class="fas fa-archive"></i>Database - Barcode 2</div>
+      <div class="table-wrapper">
+        <table><thead><tr><th>No</th><th>Kode</th><th>Golongan</th><th>Panjang</th><th>Lebar</th><th>PCS</th><th>M²</th><th>Tgl</th><th>Jam</th><th>Aksi</th></tr></thead>
+        <tbody id="tableDb2"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXPORT -->
+  <div id="view-export" class="view-page">
+    <div class="card">
+      <div class="card-header"><i class="fas fa-file-export"></i>Pusat Unduhan Laporan</div>
+      <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:24px;">Laporan Excel akan memisahkan data Barcode 1 dan 2 ke Sheet yang berbeda secara otomatis.</p>
+      <label style="display:block;font-size:0.75rem;font-weight:700;color:var(--text-secondary);margin-bottom:12px;text-transform:uppercase;">Export Khusus Hari Ini</label>
+      <div class="export-grid">
+        <button class="btn btn-export-big excel" onclick="downloadExcelHarian()"><i class="fas fa-file-excel"></i><div><strong>Excel Hari Ini</strong></div></button>
+        <button class="btn btn-export-big pdf" onclick="downloadPDFHarian()"><i class="fas fa-file-pdf"></i><div><strong>PDF Hari Ini</strong></div></button>
+      </div>
+      <label style="display:block;font-size:0.75rem;font-weight:700;color:var(--text-secondary);margin-bottom:12px;text-transform:uppercase;">Export Master Database</label>
+      <div class="export-grid">
+        <button class="btn btn-export-big blue" onclick="downloadExcelSemua()"><i class="fas fa-archive"></i><div><strong>Master Excel</strong></div></button>
+        <button class="btn btn-export-big pdf" onclick="downloadPDFSemua()"><i class="fas fa-file-pdf"></i><div><strong>Master PDF</strong></div></button>
+      </div>
+      <hr style="border-color:rgba(255,255,255,0.05);margin:24px 0"/>
+      <h4 style="margin-bottom:12px;font-size:0.85rem;color:var(--danger);text-transform:uppercase;">Zona Berbahaya</h4>
+      <button class="btn btn-export-big btn-danger-zone" onclick="hapusSemuaData()"><i class="fas fa-triangle-exclamation"></i><div><strong>Reset Total Memori Aplikasi</strong></div></button>
+    </div>
+  </div>
+
+</div>
+
+<nav class="bottom-nav">
+  <a class="nav-item active" onclick="switchPage('view-scan',this)"><i class="fas fa-qrcode"></i><span>Scan</span></a>
+  <a class="nav-item" onclick="switchPage('view-session',this)"><i class="fas fa-clipboard-check"></i><span>Hari Ini</span></a>
+  <a class="nav-item" onclick="switchPage('view-database',this)"><i class="fas fa-server"></i><span>Database</span></a>
+  <a class="nav-item" onclick="switchPage('view-export',this)"><i class="fas fa-download"></i><span>Export</span></a>
+</nav>
+
+<script>
+// ══════════════════════════════════════════
+//  STORAGE
+// ══════════════════════════════════════════
+const STORAGE_KEY = "SCMBarcodeMasterData";
+let allData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+let scannedCodesSet = new Set(allData.map(i => i.kode));
+
+// ══════════════════════════════════════════
+//  SCANNER STATE
+// ══════════════════════════════════════════
+let isScanning    = false;
+let currentCam    = "environment";
+let lastErrorTime = 0;
+let isTorchOn     = false;
+let streamTrack   = null;
+let scanLoopFrame = null;
+let audioCtx      = null;
+
+const video = document.getElementById("videoElement");
+
+const Toast = Swal.mixin({
+  toast:true, position:"top-end", showConfirmButton:false,
+  timer:2000, background:"rgba(15,23,42,0.95)", color:"#fff"
+});
+
+// ══════════════════════════════════════════
+//  DEVICE DETECTION — Hybrid Engine Logic
+// ══════════════════════════════════════════
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const isAndroid = /Android/i.test(navigator.userAgent);
+const hasNativeScanner = "BarcodeDetector" in window;
+
+let nativeDetector = null;
+let zxingReader    = null;
+
+// Badge labeling
+if (isIOS) {
+  document.getElementById("engineBadge").innerText = "IOS PRO";
+} else if (hasNativeScanner) {
+  document.getElementById("engineBadge").innerText = "HW ACCEL";
+  nativeDetector = new BarcodeDetector({
+    formats: ["code_128","code_39","code_93","ean_13","ean_8","upc_a","upc_e","itf","codabar"]
+  });
+} else {
+  document.getElementById("engineBadge").innerText = isAndroid ? "ANDROID+" : "SW MODE";
+}
+
+// ── ZXing Hints ──────────────────────────────────────
+// iOS: proven minimal hints (TRY_HARDER + core formats)
+// Android: identical core hints — ROI crop compensates for speed
+function getZXingHints() {
+  try {
+    return new Map([
+      [ZXing.DecodeHintType.TRY_HARDER, true],
+      [ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+        ZXing.BarcodeFormat.CODE_128,
+        ZXing.BarcodeFormat.CODE_39,
+        ZXing.BarcodeFormat.ITF,
+        ZXing.BarcodeFormat.EAN_13,
+        ZXing.BarcodeFormat.UPC_A,
+      ]],
+    ]);
+  } catch(e){ return undefined; }
+}
+
+function initAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  if (audioCtx.state === "suspended") audioCtx.resume();
+}
+
+// ══════════════════════════════════════════
+//  PULL TO REFRESH
+// ══════════════════════════════════════════
+let touchStartY = 0;
+const pullIndicator = document.getElementById("pullIndicator");
+window.addEventListener("touchstart", e => {
+  if (document.getElementById("view-scan").classList.contains("active") && window.scrollY === 0)
+    touchStartY = e.touches[0].clientY;
+  else touchStartY = 0;
+}, {passive:true});
+window.addEventListener("touchmove", e => {
+  if (touchStartY > 0 && document.getElementById("view-scan").classList.contains("active")) {
+    const dy = e.touches[0].clientY - touchStartY;
+    if (dy > 80) pullIndicator.style.opacity = "1";
+    if (dy > 160) {
+      touchStartY = 0; pullIndicator.style.opacity = "0";
+      Swal.fire({title:"Menyegarkan Kamera...",timer:1000,background:"rgba(15,23,42,0.95)",color:"#fff",didOpen:()=>Swal.showLoading()}).then(()=>location.reload());
+    }
+  }
+}, {passive:true});
+window.addEventListener("touchend", () => pullIndicator.style.opacity = "0");
+
+// ══════════════════════════════════════════
+//  PAGE NAV
+// ══════════════════════════════════════════
+function switchPage(pageId, el) {
+  if (pageId !== "view-scan" && isScanning) toggleScan();
+  document.querySelectorAll(".view-page").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+  document.getElementById(pageId).classList.add("active");
+  el.classList.add("active");
+  if (pageId === "view-session")  renderToday();
+  if (pageId === "view-database") renderDatabase();
+}
+
+// ══════════════════════════════════════════
+//  TOGGLE SCAN — Hybrid Engine
+//  iOS    → ZXing decodeFromStream (tidak diubah sama sekali)
+//  Android native → rAF BarcodeDetector loop (agresif, tanpa throttle)
+//  Android ZXing  → rAF canvas ROI crop loop (baru, jauh lebih cepat)
+// ══════════════════════════════════════════
+async function toggleScan() {
+  const btn         = document.getElementById("btnAction");
+  const placeholder = document.getElementById("placeholderMsg");
+  const laser       = document.getElementById("laser");
+  const targetBox   = document.getElementById("targetBox");
+
+  if (isScanning) {
+    // ── STOP ──────────────────────────────
+    isScanning = false;
+    isTorchOn  = false;
+    document.getElementById("btnTorch").classList.remove("active");
+    cancelAnimationFrame(scanLoopFrame);
+    if (streamTrack) { streamTrack.stop(); streamTrack = null; }
+    if (video.srcObject) { video.srcObject.getTracks().forEach(t => t.stop()); video.srcObject = null; }
+    if (zxingReader)  { zxingReader.reset(); zxingReader = null; }
+    video.style.display     = "none";
+    laser.style.display     = "none";
+    targetBox.style.display = "none";
+    placeholder.style.display = "flex";
+    btn.innerHTML = '<i class="fas fa-play" style="margin-right:6px;"></i>SCAN';
+    btn.classList.remove("stop");
+
+  } else {
+    // ── START ─────────────────────────────
+    initAudio();
+    try {
+      video.style.display     = "block";
+      laser.style.display     = "block";
+      targetBox.style.display = "block";
+      placeholder.style.display = "none";
+      btn.innerHTML = '<i class="fas fa-stop" style="margin-right:6px;"></i>STOP';
+      btn.classList.add("stop");
+      isScanning = true;
+
+      // ── Camera stream ──────────────────
+      // iOS: resolusi proven (1280x720, facingMode ideal) — TIDAK DIUBAH
+      // Android: request lebih tinggi agar crop ROI tetap tajam
+      let stream;
+      if (isIOS) {
+        // Persis seperti versi iOS original
         try {
-          // Calculate time since last frame
-          const currentTime = performance.now();
-          const deltaTime = currentTime - lastFrameTime;
-          
-          // Skip frames if we're too fast (avoid overwhelming CPU)
-          if (deltaTime < minFrameInterval) {
-            requestAnimationFrame(detectLoop);
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: currentCam }, width: { ideal: 1280 }, height: { ideal: 720 } }
+          });
+        } catch(e) {
+          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        }
+      } else {
+        // Android: minta resolusi lebih tinggi + advanced constraints untuk kecepatan decode
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: { ideal: currentCam },
+              width:  { ideal: 1920, min: 640 },
+              height: { ideal: 1080, min: 480 },
+              frameRate: { ideal: 30, min: 15 },
+            }
+          });
+        } catch(e) {
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode: { ideal: currentCam }, width: { ideal: 1280 }, height: { ideal: 720 } }
+            });
+          } catch(e2) {
+            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+          }
+        }
+      }
+
+      video.setAttribute("autoplay","");
+      video.setAttribute("muted","");
+      video.setAttribute("playsinline","");
+      video.srcObject = stream;
+      streamTrack = stream.getVideoTracks()[0];
+
+      // Autofocus continuous — Android
+      if (!isIOS) {
+        try {
+          const cap = streamTrack.getCapabilities();
+          if (cap.focusMode && cap.focusMode.includes("continuous"))
+            await streamTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
+        } catch(_) {}
+      }
+
+      await new Promise(resolve => { video.onloadedmetadata = () => resolve(); });
+      await video.play();
+
+      // ══════════════════════════════════
+      //  ENGINE SELECTION
+      // ══════════════════════════════════
+
+      if (isIOS) {
+        // ────────────────────────────────
+        //  iOS ENGINE — ZXing decodeFromStream, TIDAK DIUBAH
+        // ────────────────────────────────
+        zxingReader = new ZXing.BrowserMultiFormatReader(getZXingHints());
+        zxingReader.timeBetweenDecodingAttempts = 10;
+        zxingReader.decodeFromStream(stream, "videoElement", (result, err) => {
+          if (result)
+            processBarcodeDetected(result.getText(),
+              result.getBarcodeFormat ? result.getBarcodeFormat().toString() : "UNKNOWN");
+        });
+
+      } else if (nativeDetector) {
+        // ────────────────────────────────
+        //  ANDROID NATIVE ENGINE (BarcodeDetector / HW Accelerated)
+        //  Loop rAF tanpa throttle — secepat mungkin
+        // ────────────────────────────────
+        const nativeLoop = async () => {
+          if (!isScanning) return;
+          try {
+            const barcodes = await nativeDetector.detect(video);
+            if (barcodes.length > 0)
+              processBarcodeDetected(barcodes[0].rawValue, barcodes[0].format.toUpperCase());
+          } catch(_) {}
+          if (isScanning) scanLoopFrame = requestAnimationFrame(nativeLoop);
+        };
+        scanLoopFrame = requestAnimationFrame(nativeLoop);
+
+      } else {
+        // ────────────────────────────────
+        //  ANDROID ZXING ENGINE — Canvas ROI Crop Loop
+        //
+        //  Cara kerja:
+        //  1. Setiap frame rAF, gambar video ke canvas offscreen
+        //  2. HANYA crop area targeting-box (30% tinggi × 90% lebar video)
+        //     → ZXing hanya proses ~27% pixel, jauh lebih cepat
+        //  3. decodeFromCanvas() synchronous — tidak ada delay async
+        //  4. Setelah berhasil decode, tunggu 500ms sebelum loop lanjut
+        //     (debounce agar tidak double-fire pada barcode yang sama)
+        // ────────────────────────────────
+        zxingReader = new ZXing.BrowserMultiFormatReader(getZXingHints());
+        // Matikan delay internal ZXing — kita kontrol sendiri via rAF
+        zxingReader.timeBetweenDecodingAttempts = 0;
+
+        // Canvas offscreen — dibuat sekali, dipakai ulang
+        const roiCanvas = document.createElement("canvas");
+        const roiCtx    = roiCanvas.getContext("2d", { willReadFrequently: true });
+
+        // Throttle agar tidak proses setiap frame (setiap 2 rAF ≈ 30fps pada 60hz display)
+        let frameSkip   = 0;
+        let isDecoding  = false;
+
+        const androidZXingLoop = () => {
+          if (!isScanning) return;
+
+          frameSkip++;
+          // Proses setiap 2 frame (≈30fps). Ubah ke 1 jika ingin lebih agresif.
+          if (frameSkip < 2) {
+            scanLoopFrame = requestAnimationFrame(androidZXingLoop);
             return;
           }
-          
-          lastFrameTime = currentTime;
-          frameCount++;
-          
-          // Update performance metrics
-          if (currentTime - startTime > 1000) {
-            const fps = frameCount / ((currentTime - startTime) / 1000);
-            console.log(`Current FPS: ${fps.toFixed(2)}`);
-            
-            // Adjust quality based on performance
-            if (fps < 15) {
-              detectionQuality = Math.max(0.5, detectionQuality - 0.1);
-              roiScaleFactor = Math.max(0.7, roiScaleFactor - 0.05);
-            } else if (fps > 30) {
-              detectionQuality = Math.min(1.0, detectionQuality + 0.05);
-              roiScaleFactor = Math.min(1.2, roiScaleFactor + 0.02);
+          frameSkip = 0;
+
+          // Tunggu video benar-benar siap
+          if (video.readyState < 2 || video.videoWidth === 0 || isDecoding) {
+            scanLoopFrame = requestAnimationFrame(androidZXingLoop);
+            return;
+          }
+
+          isDecoding = true;
+
+          const vW = video.videoWidth;
+          const vH = video.videoHeight;
+
+          // Hitung ROI sesuai targeting-box CSS:
+          //   top:35%, bottom:35% → tinggi ROI 30% dari vH
+          //   left:5%, right:5%   → lebar ROI  90% dari vW
+          const roiX = Math.floor(vW * 0.05);
+          const roiY = Math.floor(vH * 0.35);
+          const roiW = Math.floor(vW * 0.90);
+          const roiH = Math.floor(vH * 0.30);
+
+          // Resize canvas hanya jika dimensi berubah (lazy resize)
+          if (roiCanvas.width !== roiW || roiCanvas.height !== roiH) {
+            roiCanvas.width  = roiW;
+            roiCanvas.height = roiH;
+          }
+
+          // Gambar hanya ROI ke canvas — inilah kunci kecepatan
+          roiCtx.drawImage(video, roiX, roiY, roiW, roiH, 0, 0, roiW, roiH);
+
+          try {
+            // decodeFromCanvas() adalah synchronous throw-based API:
+            // - Berhasil → return Result
+            // - Gagal    → throw NotFoundException (diabaikan)
+            const result = zxingReader.decodeFromCanvas(roiCanvas);
+            if (result) {
+              const fmt = result.getBarcodeFormat ? result.getBarcodeFormat().toString() : "UNKNOWN";
+              processBarcodeDetected(result.getText(), fmt);
+              // Debounce singkat setelah berhasil scan
+              isDecoding = false;
+              if (isScanning) {
+                scanLoopFrame = requestAnimationFrame(androidZXingLoop);
+              }
+              return;
             }
-            
-            frameCount = 0;
-            lastFrameTime = currentTime;
+          } catch(e) {
+            // NotFoundException normal — lanjutkan loop
           }
-          
-          // Update ROI rectangle dynamically
-          if (!roiRect) {
-            roiRect = {
-              x: Math.floor(video.videoWidth * 0.05),
-              y: Math.floor(video.videoHeight * 0.35),
-              width: Math.floor(video.videoWidth * 0.90 * roiScaleFactor),
-              height: Math.floor(video.videoHeight * 0.30 * roiScaleFactor)
-            };
-          } else {
-            // Smoothly adjust ROI size
-            roiRect.width = Math.floor(roiRect.width * 0.9 + (video.videoWidth * 0.90 * roiScaleFactor) * 0.1);
-            roiRect.height = Math.floor(roiRect.height * 0.9 + (video.videoHeight * 0.30 * roiScaleFactor) * 0.1);
-          }
-          
-          // Perform detection
-          let result;
-          if (nativeDetector) {
-            result = await nativeDetector.detect(video);
-          } else {
-            // Use ZXing with optimized settings
-            result = await zxingReader.decodeFromCanvas(roiCanvas);
-          }
-          
-          if (result) {
-            processBarcodeDetected(result.getText(), result.format);
-          }
-          
-        } catch (err) {
-          // Graceful error handling
-          if (err.message.includes('NotFound')) {
-            // Normal case - no barcode detected
-          } else {
-            console.error('Detection error:', err);
-          }
-        }
-        
-        if (isScanning) {
-          requestAnimationFrame(detectLoop);
-        }
-      }
-      
-      // Start detection loop
-      requestAnimationFrame(detectLoop);
-      
-      // Rest of existing code...
-    }
 
-    // ── WhatsApp Share Feature ─────────────────────────────────────────────────
-    //  Add WhatsApp share button to export page
+          isDecoding = false;
+          if (isScanning) scanLoopFrame = requestAnimationFrame(androidZXingLoop);
+        };
 
-    function addWhatsAppShareButton() {
-      const exportContainer = document.querySelector('.view-page.active');
-      if (!exportContainer) return;
-      
-      const shareBtn = document.createElement('button');
-      shareBtn.className = 'btn btn-export-big whatsapp';
-      shareBtn.innerHTML = `
-        <i class="fab fa-whatsapp"></i>
-        <div><strong>Bagikan ke WhatsApp</strong></div>
-      `;
-      
-      shareBtn.onclick = () => {
-        // Get selected data from today view
-        const todayData = getAllTodayData();
-        
-        // Format for WhatsApp
-        const formattedText = formatForWhatsApp(todayData);
-        
-        // Create WhatsApp URL
-        const encodedText = encodeURIComponent(formattedText);
-        const url = `https://wa.me/?text=${encodedText}`;
-        
-        // Open in new tab
-        window.open(url, '_blank');
-      };
-      
-      // Insert before danger zone
-      const dangerZone = document.querySelector('.btn-danger-zone');
-      if (dangerZone) {
-        dangerZone.parentNode.insertBefore(shareBtn, dangerZone);
+        scanLoopFrame = requestAnimationFrame(androidZXingLoop);
       }
-    }
 
-    // Format data for WhatsApp message
-    function formatForWhatsApp(data) {
-      const lines = [
-        "📊 Data Scan Hari Ini - PT. Daya Sakti Niaga",
-        "",
-        `📅 Tanggal: ${new Date().toLocaleDateString('id-ID')}`,
-        ""
-      ];
-      
-      // Add Barcode 1 data
-      const b1Data = data.filter(d => d.jenis === 'Barcode 1');
-      if (b1Data.length > 0) {
-        lines.push("📋 Barcode 1:");
-        b1Data.forEach(d => {
-          lines.push(`- ${d.kode}: ${d.golongan} (${d.panjang}×${d.lebar}) ×${d.potongan} = ${d.persegi}m²`);
-        });
-      }
-      
-      // Add Barcode 2 data
-      const b2Data = data.filter(d => d.jenis === 'Barcode 2');
-      if (b2Data.length > 0) {
-        lines.push("📋 Barcode 2:");
-        b2Data.forEach(d => {
-          lines.push(`- ${d.kode}: ${d.golongan} (${d.panjang}×${d.lebar}) ×${d.potongan} = ${d.persegi}m²`);
-        });
-      }
-      
-      // Add totals
-      lines.push("");
-      lines.push(`📊 Total Barcode 1: ${b1Data.length}`);
-      lines.push(`📊 Total Barcode 2: ${b2Data.length}`);
-      
-      return lines.join("\n");
+    } catch(err) {
+      Swal.fire("Kamera Gagal", "Izin belum diberikan / browser tidak support.", "error");
+      if (isScanning) toggleScan();
     }
+  }
+}
 
-    // Call this when view changes
-    function onViewChange(viewId) {
-      // Existing code...
-      
-      if (viewId === 'view-export') {
-        addWhatsAppShareButton();
-      }
+// ══════════════════════════════════════════
+//  TORCH
+// ══════════════════════════════════════════
+async function toggleTorch() {
+  if (!isScanning || !streamTrack) return Toast.fire({icon:"warning",title:"Mulai scan dulu!"});
+  try {
+    const cap = streamTrack.getCapabilities();
+    if (cap.torch) {
+      isTorchOn = !isTorchOn;
+      await streamTrack.applyConstraints({ advanced: [{ torch: isTorchOn }] });
+      document.getElementById("btnTorch").classList.toggle("active", isTorchOn);
+    } else { Toast.fire({icon:"error",title:"Senter tidak didukung"}); }
+  } catch(_) { Toast.fire({icon:"error",title:"Akses ditolak"}); }
+}
+
+// ══════════════════════════════════════════
+//  SWITCH CAMERA
+// ══════════════════════════════════════════
+function switchCamera() {
+  currentCam = currentCam === "environment" ? "user" : "environment";
+  if (isScanning) { toggleScan(); setTimeout(toggleScan, 300); }
+  else Toast.fire({icon:"info",title:currentCam==="environment"?"Kamera Belakang":"Kamera Depan"});
+}
+
+// ══════════════════════════════════════════
+//  MASTER DB
+// ══════════════════════════════════════════
+const DEFAULT_MASTER = {
+  "1593103505404312800401050003": {jenisBarcode:"Barcode 2",panjang:305,lebar:14,potongan:24,persegi:"10.25",golongan:"10(3)"},
+  "11111916000503202881401070011": {jenisBarcode:"Barcode 2",panjang:280,lebar:15,potongan:24,persegi:"10.08",golongan:"FFP(11)"},
+  "1111808100304302201401090009": {jenisBarcode:"Barcode 2",panjang:300,lebar:13,potongan:24,persegi:"9.36",golongan:"FFP"},
+};
+let masterDB = { ...DEFAULT_MASTER, ...JSON.parse(localStorage.getItem("SCMMasterDB") || "{}") };
+
+// ══════════════════════════════════════════
+//  PARSERS
+// ══════════════════════════════════════════
+function parseBarcode1(raw) {
+  if (raw.startsWith("86") && raw.length >= 24) {
+    try {
+      const p_str   = raw.slice(-4);
+      const w_str   = raw.slice(-9, -4);
+      const l_str   = raw.slice(-12, -9);
+      const ext_str = raw.slice(-16, -12);
+      const prefix  = raw.slice(2, -16);
+      let golongan  = prefix.replace(/^0+/, "") || "-";
+      const panjang  = parseInt(l_str, 10);
+      const lebar    = parseInt(w_str, 10) / 10;
+      const potongan = parseInt(p_str, 10);
+      const persegi  = (panjang * lebar * potongan) / 10000;
+      const extNum   = parseInt(ext_str, 10);
+      const golonganDisplay = !isNaN(extNum) ? `${golongan}(${extNum.toString().padStart(3,"0")})` : golongan;
+      if (panjang > 0 && panjang < 9999 && lebar > 0 && potongan > 0)
+        return {jenisBarcode:"Barcode 1", panjang, lebar, potongan, persegi:persegi.toFixed(2), golongan:golonganDisplay};
+    } catch(_) {}
+  }
+  return null;
+}
+
+function parseBarcode20Digit(raw) {
+  if (raw.length === 20 && /^\d+$/.test(raw)) {
+    const gol = raw.slice(0,7).replace(/^0+/,"");
+    const p   = parseInt(raw.slice(7,10), 10);
+    const l   = parseInt(raw.slice(10,13), 10);
+    const pot = parseInt(raw.slice(13,16), 10);
+    if (p > 0 && l > 0 && pot > 0)
+      return {jenisBarcode:"Barcode 2", panjang:p, lebar:l, potongan:pot, persegi:((p*l*pot)/10000).toFixed(2), golongan:gol||raw.slice(0,7)};
+  }
+  return null;
+}
+
+// ══════════════════════════════════════════
+//  PROCESS DETECTED
+// ══════════════════════════════════════════
+function processBarcodeDetected(code, format) {
+  code = (code || "").trim();
+  if (!code) return;
+
+  if (scannedCodesSet.has(code)) {
+    const now = Date.now();
+    if (now - lastErrorTime > 2000) {
+      triggerErrorFeedback();
+      Swal.fire({title:"DITOLAK!",text:"Barcode ini sudah pernah di-scan.",icon:"error",background:"rgba(15,23,42,0.95)",color:"#fff",confirmButtonColor:"var(--danger)"});
+      lastErrorTime = now;
     }
-  </script>
+    return;
+  }
+
+  const b1 = parseBarcode1(code);
+  if (b1) { scannedCodesSet.add(code); simpanData(code, format, b1); return; }
+
+  const b2 = parseBarcode20Digit(code);
+  if (b2) { scannedCodesSet.add(code); simpanData(code, format, b2); return; }
+
+  if (masterDB[code]) { scannedCodesSet.add(code); simpanData(code, format, masterDB[code]); return; }
+
+  if (code.length >= 10) promptNewMasterData(code, format);
+}
+
+function promptNewMasterData(code, format) {
+  if (isScanning) toggleScan();
+  Swal.fire({
+    title:"Master Data Baru!",
+    html:`<div style="font-size:0.85rem;color:#a78bfa;margin-bottom:15px;text-align:left;">Barcode belum dikenali:<br><b style="color:white;">${code}</b><br><br>Masukkan dimensinya 1x saja. Sistem akan mengingatnya selamanya.</div>
+    <select id="m-jenis" class="swal2-input" style="width:90%;font-size:14px;margin-bottom:8px;"><option value="Barcode 2">Barcode 2</option><option value="Barcode 1">Barcode 1</option></select>
+    <input id="m-gol" class="swal2-input" placeholder="Golongan (Cth: FFP)" style="width:90%;font-size:14px;margin-bottom:8px;">
+    <input id="m-p" type="number" class="swal2-input" placeholder="Panjang (Cth: 300)" style="width:90%;font-size:14px;margin-bottom:8px;">
+    <input id="m-l" type="number" step="0.1" class="swal2-input" placeholder="Lebar (Cth: 13.5)" style="width:90%;font-size:14px;margin-bottom:8px;">
+    <input id="m-pot" type="number" class="swal2-input" placeholder="PCS (Cth: 24)" style="width:90%;font-size:14px;margin-bottom:8px;">`,
+    background:"rgba(15,23,42,0.95)",color:"#fff",
+    showCancelButton:true,confirmButtonText:'<i class="fas fa-save"></i> Simpan',cancelButtonText:"Batal",confirmButtonColor:"var(--success)",
+    preConfirm: () => {
+      const j   = document.getElementById("m-jenis").value;
+      const g   = document.getElementById("m-gol").value.trim();
+      const p   = parseFloat(document.getElementById("m-p").value);
+      const l   = parseFloat(document.getElementById("m-l").value);
+      const pot = parseInt(document.getElementById("m-pot").value);
+      if (!g || isNaN(p) || isNaN(l) || isNaN(pot)) { Swal.showValidationMessage("Semua kolom wajib diisi!"); return false; }
+      return {jenisBarcode:j, golongan:g, panjang:p, lebar:l, potongan:pot, persegi:((p*l*pot)/10000).toFixed(2)};
+    }
+  }).then(res => {
+    if (res.isConfirmed) {
+      masterDB[code] = res.value;
+      localStorage.setItem("SCMMasterDB", JSON.stringify(masterDB));
+      scannedCodesSet.add(code);
+      simpanData(code, format, res.value);
+    }
+    if (document.getElementById("view-scan").classList.contains("active")) setTimeout(toggleScan, 500);
+  });
+}
+
+// ══════════════════════════════════════════
+//  MANUAL INPUT
+// ══════════════════════════════════════════
+function inputManual() {
+  const val = document.getElementById("manualData").value.trim();
+  if (!val) return Toast.fire({icon:"error",title:"Kode kosong!"});
+  if (scannedCodesSet.has(val)) { triggerErrorFeedback(); return Swal.fire("Ditolak!","Barcode ini sudah ada.","error"); }
+  processBarcodeDetected(val, "MANUAL");
+  document.getElementById("manualData").value = "";
+}
+
+// ══════════════════════════════════════════
+//  FEEDBACK
+// ══════════════════════════════════════════
+function triggerFeedback() {
+  if (navigator.vibrate) navigator.vibrate([30]);
+  if (audioCtx) {
+    try {
+      const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.type = "square"; osc.frequency.setValueAtTime(3500, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0, audioCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.005);
+      gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.04);
+      osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.04);
+    } catch(_) {}
+  }
+  const box = document.getElementById("targetBox");
+  box.style.borderColor = "var(--success)"; box.style.filter = "drop-shadow(0 0 15px var(--success))";
+  setTimeout(() => { box.style.borderColor = "var(--accent)"; box.style.filter = "drop-shadow(0 0 8px var(--accent))"; }, 150);
+}
+function triggerErrorFeedback() {
+  if (navigator.vibrate) navigator.vibrate([100,50,100]);
+  if (audioCtx) {
+    try {
+      const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.type = "sawtooth"; osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0, audioCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.01);
+      gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.15);
+      osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.15);
+    } catch(_) {}
+  }
+  const box = document.getElementById("targetBox");
+  box.style.borderColor = "var(--danger)"; box.style.filter = "drop-shadow(0 0 15px var(--danger))";
+  setTimeout(() => { box.style.borderColor = "var(--accent)"; box.style.filter = "drop-shadow(0 0 8px var(--accent))"; }, 200);
+}
+
+// ══════════════════════════════════════════
+//  SIMPAN DATA
+// ══════════════════════════════════════════
+function simpanData(kode, fmt, parsedData) {
+  const nowDate = new Date();
+  const tgl = new Date(nowDate.getTime() - nowDate.getTimezoneOffset()*60000).toISOString().split("T")[0];
+  const newData = {
+    id:Date.now(), scannedAt:Date.now(), kode, format:fmt,
+    jenis:parsedData.jenisBarcode,
+    panjang:parsedData.panjang, lebar:parsedData.lebar,
+    potongan:parsedData.potongan, persegi:parsedData.persegi,
+    golongan:parsedData.golongan, tanggal:tgl,
+    jam:nowDate.toTimeString().split(" ")[0],
+  };
+  allData.push(newData);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(allData));
+  triggerFeedback();
+  Toast.fire({icon:"success",title:`Akurat! Masuk ke ${newData.jenis}`});
+  if (document.getElementById("view-session").classList.contains("active"))  renderToday();
+  if (document.getElementById("view-database").classList.contains("active")) renderDatabase();
+}
+
+// ══════════════════════════════════════════
+//  RENDER TABLES
+// ══════════════════════════════════════════
+function formatTgl(tgl) {
+  if (!tgl || tgl==="-") return "-";
+  const p = tgl.split("-");
+  return p.length===3 ? `${p[2]}/${p[1]}/${p[0].substring(2)}` : tgl;
+}
+
+function createTableRows(dataArray, tableIdStr) {
+  const tbody = document.getElementById(tableIdStr);
+  tbody.innerHTML = "";
+  if (!dataArray.length) {
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-muted);">Belum ada data di daftar ini</td></tr>`;
+    return;
+  }
+  const isDb = tableIdStr.includes("Db");
+  dataArray.forEach((i, idx) => {
+    const tr = document.createElement("tr");
+    const kodeDisplay = `<span class="badge">${i.kode.length>12?i.kode.substring(0,12)+"…":i.kode}</span>`;
+    if (isDb) {
+      tr.innerHTML = `<td>${idx+1}</td><td>${kodeDisplay}</td><td><b>${i.golongan}</b></td><td>${i.panjang}</td><td>${i.lebar}</td><td>${i.potongan}</td><td>${i.persegi}</td><td>${formatTgl(i.tanggal)}</td><td>${i.jam.substring(0,5)}</td><td><button class="btn-del" onclick="hapus(${i.id},'db')"><i class="fas fa-trash"></i></button></td>`;
+    } else {
+      tr.innerHTML = `<td>${idx+1}</td><td>${kodeDisplay}</td><td><b>${i.golongan}</b></td><td>${i.panjang}</td><td>${i.lebar}</td><td>${i.potongan}</td><td>${i.persegi}</td><td>${i.jam.substring(0,5)}</td><td><button class="btn-del" onclick="hapus(${i.id},'today')"><i class="fas fa-trash"></i></button></td>`;
+    }
+    tbody.appendChild(tr);
+  });
+}
+
+function renderToday() {
+  const nowDate = new Date();
+  const hariIni = new Date(nowDate.getTime()-nowDate.getTimezoneOffset()*60000).toISOString().split("T")[0];
+  ["Barcode 1","Barcode 2"].forEach((jenis,i) => {
+    const d = allData.filter(x=>x.tanggal===hariIni&&x.jenis===jenis).sort((a,b)=>b.scannedAt-a.scannedAt);
+    createTableRows(d, `tableToday${i+1}`);
+  });
+}
+
+function renderDatabase() {
+  const start  = document.getElementById("start").value;
+  const end    = document.getElementById("end").value;
+  const search = document.getElementById("search").value.toLowerCase();
+  const filtered = allData.filter(i => {
+    if (start && i.tanggal < start) return false;
+    if (end   && i.tanggal > end)   return false;
+    if (search && !i.kode.toLowerCase().includes(search) && !i.golongan.toLowerCase().includes(search)) return false;
+    return true;
+  });
+  ["Barcode 1","Barcode 2"].forEach((jenis,i) => {
+    const d = filtered.filter(x=>x.jenis===jenis).sort((a,b)=>b.scannedAt-a.scannedAt);
+    createTableRows(d, `tableDb${i+1}`);
+  });
+}
+
+function hapus(id, source) {
+  const item = allData.find(i=>i.id===id);
+  if (!item) return;
+  Swal.fire({
+    title:"Hapus Data?",text:"Data akan dihapus permanen.",icon:"warning",
+    showCancelButton:true,confirmButtonColor:"var(--danger)",cancelButtonColor:"rgba(255,255,255,0.1)",
+    confirmButtonText:"Ya, Hapus",cancelButtonText:"Batal"
+  }).then(res => {
+    if (res.isConfirmed) {
+      allData = allData.filter(i=>i.id!==id);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(allData));
+      scannedCodesSet.delete(item.kode);
+      renderToday(); renderDatabase();
+    }
+  });
+}
+
+function hapusSemuaData() {
+  Swal.fire({
+    title:"RESET TOTAL?",text:"Seluruh data akan dihapus total!",icon:"warning",
+    showCancelButton:true,confirmButtonColor:"var(--danger)",cancelButtonColor:"rgba(255,255,255,0.1)",
+    confirmButtonText:"Ya, Hapus Semua",cancelButtonText:"Batal"
+  }).then(res => {
+    if (res.isConfirmed) {
+      localStorage.removeItem(STORAGE_KEY); localStorage.removeItem("SCMMasterDB");
+      allData = []; scannedCodesSet.clear(); masterDB = {...DEFAULT_MASTER};
+      renderToday(); renderDatabase();
+      Toast.fire({icon:"success",title:"Aplikasi Bersih!"});
+    }
+  });
+}
+
+// ══════════════════════════════════════════
+//  EXPORT
+// ══════════════════════════════════════════
+function downloadExcelHarian() {
+  const n = new Date();
+  const h = new Date(n.getTime()-n.getTimezoneOffset()*60000).toISOString().split("T")[0];
+  const d = allData.filter(i=>i.tanggal===h);
+  if (!d.length) return Swal.fire("Kosong","Tidak ada data hari ini.","info");
+  exportToExcel(d, "Harian_"+h);
+}
+function downloadExcelSemua() {
+  if (!allData.length) return Swal.fire("Kosong","Database kosong.","info");
+  exportToExcel(allData, "Master_Data");
+}
+function exportToExcel(dataArray, label) {
+  const wb = XLSX.utils.book_new();
+  ["Barcode 1","Barcode 2"].forEach(type => {
+    const td = dataArray.filter(i=>i.jenis===type).sort((a,b)=>a.scannedAt-b.scannedAt);
+    if (!td.length) return;
+    const isB2 = type==="Barcode 2";
+    const dt = td.map((i,idx) => ({
+      No:idx+1, "Kode Barcode":i.kode, Golongan:i.golongan,
+      Panjang:i.panjang, Lebar:i.lebar,
+      [isB2?"PCS":"Potongan"]:i.potongan,
+      "Persegi (m2)":i.persegi, Tanggal:formatTgl(i.tanggal), Jam:i.jam
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dt), type);
+  });
+  XLSX.writeFile(wb, `Export_SCM_${label}_${Date.now()}.xlsx`);
+}
+function downloadPDFHarian() {
+  const n = new Date();
+  const h = new Date(n.getTime()-n.getTimezoneOffset()*60000).toISOString().split("T")[0];
+  const d = allData.filter(i=>i.tanggal===h);
+  if (!d.length) return Swal.fire("Kosong","Tidak ada data hari ini.","info");
+  exportToPDF(d, "Harian_"+h);
+}
+function downloadPDFSemua() {
+  if (!allData.length) return Swal.fire("Kosong","Database kosong.","info");
+  exportToPDF(allData, "Master_Data");
+}
+function exportToPDF(dataArray, label) {
+  const {jsPDF} = window.jspdf;
+  const doc = new jsPDF("p","pt","a4");
+  doc.setFontSize(14); doc.text("Laporan Data Scan - PT. Daya Sakti Niaga",40,40);
+  doc.setFontSize(10); doc.setTextColor(100); doc.text(`Tipe: ${label.replace(/_/g," ")}`,40,55);
+  const rows = dataArray.filter(i=>i.jenis!=="Barcode 3")
+    .sort((a,b)=>(a.jenis||"").localeCompare(b.jenis||""))
+    .map((i,idx)=>[idx+1,i.jenis,i.kode,i.golongan,i.panjang,i.lebar,i.potongan,i.persegi,formatTgl(i.tanggal)]);
+  doc.autoTable({head:[["No","Jenis","Kode","Gol","P","L","Pot/PCS","M2","Tanggal"]],body:rows,startY:70,styles:{fontSize:8},headStyles:{fillColor:[139,92,246]}});
+  doc.save(`Export_SCM_${label}_${Date.now()}.pdf`);
+}
+</script>
 </body>
 </html>
