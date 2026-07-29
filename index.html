@@ -78,8 +78,8 @@
     }
     #videoElement { width:100%; height:100%; object-fit:cover; display:none; }
     .targeting-box {
-      position:absolute; top:25%; left:10%; right:10%; bottom:25%; border-radius:12px; pointer-events:none; z-index:5;
-      box-shadow:0 0 0 4000px rgba(0,0,0,0.5); display:none;
+      position:absolute; top:20%; left:8%; right:8%; bottom:20%; border-radius:12px; pointer-events:none; z-index:5;
+      box-shadow:0 0 0 4000px rgba(0,0,0,0.45); display:none;
     }
     .targeting-box::before, .targeting-box::after {
       content:""; position:absolute; width:35px; height:35px; border-color:var(--accent); border-style:solid;
@@ -88,10 +88,10 @@
     .targeting-box::before { top:-2px; left:-2px; border-width:4px 0 0 4px; border-top-left-radius:12px; }
     .targeting-box::after { bottom:-2px; right:-2px; border-width:0 4px 4px 0; border-bottom-right-radius:12px; }
     .laser-overlay {
-      position:absolute; top:50%; left:10%; right:10%; height:2px; background:linear-gradient(90deg,transparent,var(--secondary),transparent);
+      position:absolute; top:50%; left:8%; right:8%; height:2px; background:linear-gradient(90deg,transparent,var(--secondary),transparent);
       box-shadow:0 0 12px 3px rgba(59,130,246,0.8); display:none; z-index:10; animation:scanAnim 1.5s infinite ease-in-out;
     }
-    @keyframes scanAnim { 0%,100%{top:25%; opacity:0.2} 50%{top:75%; opacity:1} }
+    @keyframes scanAnim { 0%,100%{top:20%; opacity:0.2} 50%{top:80%; opacity:1} }
     .scanner-placeholder { color:var(--text-muted); font-size:1rem; font-weight:600; text-align:center; display:flex; flex-direction:column; align-items:center; gap:16px; }
     .scanner-placeholder i { font-size:3.5rem; opacity:0.5; }
     
@@ -138,7 +138,7 @@
 
   <div class="topbar">
     <div class="topbar-title"><i class="fas fa-qrcode" style="margin-right:8px"></i>PT. Daya Sakti Niaga</div>
-    <span class="engine-badge" id="engineBadge">TURBO ENGINE</span>
+    <span class="engine-badge" id="engineBadge">ZXING DUAL ENGINE</span>
   </div>
 
   <div class="container">
@@ -151,7 +151,6 @@
             <div class="scanner-placeholder" id="placeholderMsg">
               <i class="fas fa-video-slash"></i><span>Kamera Off</span>
             </div>
-            <!-- playsinline & webkit-playsinline Wajib untuk iPhone -->
             <video id="videoElement" autoplay playsinline webkit-playsinline muted></video>
             <div class="targeting-box" id="targetBox"></div>
             <div class="laser-overlay" id="laser"></div>
@@ -270,11 +269,9 @@
     let isScanning = false;
     let currentCam = "environment";
     let isTorchOn = false;
-    let streamTrack = null;
-    let scanLoopFrame = null;
-    let autoFocusInterval = null;
     let audioCtx = null;
-    let isProcessingScan = false;
+    let lastScannedCode = "";
+    let lastScannedTime = 0;
 
     const video = document.getElementById("videoElement");
     const Toast = Swal.mixin({
@@ -282,24 +279,18 @@
       background: "rgba(15,23,42,0.95)", color: "#fff"
     });
 
-    // Inisialisasi Native BarcodeDetector jika didukung (Browser Modern Android)
-    let nativeDetector = null;
-    if ("BarcodeDetector" in window) {
-      try {
-        nativeDetector = new BarcodeDetector({
-          formats: ["code_128", "code_39", "code_93", "ean_13", "ean_8", "qr_code", "upc_a", "upc_e", "itf"]
-        });
-        document.getElementById("engineBadge").innerText = "NATIVE GPU SPEED";
-      } catch(e) { nativeDetector = null; }
-    }
-
-    // Inisialisasi ZXing Fallback
+    // Inisialisasi Continuous ZXing Engine
     const zxingHints = new Map();
     zxingHints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
-      ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.CODE_39, ZXing.BarcodeFormat.CODE_93,
-      ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8, ZXing.BarcodeFormat.ITF, ZXing.BarcodeFormat.QR_CODE
+      ZXing.BarcodeFormat.CODE_128,
+      ZXing.BarcodeFormat.CODE_39,
+      ZXing.BarcodeFormat.CODE_93,
+      ZXing.BarcodeFormat.EAN_13,
+      ZXing.BarcodeFormat.EAN_8,
+      ZXing.BarcodeFormat.ITF,
+      ZXing.BarcodeFormat.QR_CODE
     ]);
-    const zxingReader = new ZXing.BrowserMultiFormatReader(zxingHints);
+    const codeReader = new ZXing.BrowserMultiFormatReader(zxingHints);
 
     function initAudio() {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -332,7 +323,7 @@
     }
 
     // ══════════════════════════════════════════
-    // REAL-TIME ZERO-DELAY SCANNER ENGINE
+    // HIGH PERFORMANCE CONTINUOUS SCANNER ENGINE
     // ══════════════════════════════════════════
     async function toggleScan() {
       const btn = document.getElementById("btnAction");
@@ -345,11 +336,10 @@
         isScanning = false;
         isTorchOn = false;
         document.getElementById("btnTorch").classList.remove("active");
-        if (scanLoopFrame) cancelAnimationFrame(scanLoopFrame);
-        if (autoFocusInterval) clearInterval(autoFocusInterval);
         
-        if (streamTrack) { streamTrack.stop(); streamTrack = null; }
-        if (video.srcObject) { video.srcObject.getTracks().forEach(t => t.stop()); video.srcObject = null; }
+        try {
+          codeReader.reset();
+        } catch(e){}
 
         video.style.display = "none";
         laser.style.display = "none";
@@ -368,100 +358,43 @@
           btn.innerHTML = '<i class="fas fa-stop" style="margin-right:6px;"></i>STOP';
           btn.classList.add("stop");
           isScanning = true;
-          isProcessingScan = false;
 
-          // Pengaturan Resolusi Ideal untuk Pemindaian Instan tanpa Delay
           const constraints = {
             video: {
               facingMode: { ideal: currentCam },
               width: { ideal: 1280 },
-              height: { ideal: 720 },
-              frameRate: { ideal: 30, max: 60 }
+              height: { ideal: 720 }
             }
           };
 
-          const stream = await navigator.mediaDevices.getUserMedia(constraints);
-          video.srcObject = stream;
-          streamTrack = stream.getVideoTracks()[0];
-
-          // Optimasi Fokus untuk Android Hardware
-          if (streamTrack && streamTrack.getCapabilities) {
-            const cap = streamTrack.getCapabilities();
-            const adv = {};
-            if (cap.focusMode && cap.focusMode.includes("continuous")) adv.focusMode = "continuous";
-            if (cap.exposureMode && cap.exposureMode.includes("continuous")) adv.exposureMode = "continuous";
-            if (Object.keys(adv).length > 0) streamTrack.applyConstraints({ advanced: [adv] }).catch(()=>{});
-            
-            autoFocusInterval = setInterval(() => {
-              if (streamTrack && isScanning && cap.focusMode) {
-                streamTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(()=>{});
-              }
-            }, 1500);
-          }
-
-          await video.play();
-
-          // Canvas Buffer internal untuk ZXing decoding
-          const canvas = document.createElement("canvas");
-          const ctx = canvas.getContext("2d", { willReadFrequently: true, alpha: false });
-          ctx.imageSmoothingEnabled = false;
-
-          // REALTIME LOOP SCAN
-          const processFrame = async () => {
+          // Menggunakan ZXing Continuous Decoder langsung ke video element
+          codeReader.decodeFromConstraints(constraints, 'videoElement', (result, err) => {
             if (!isScanning) return;
 
-            if (video.readyState === video.HAVE_ENOUGH_DATA && !isProcessingScan) {
-              let barcodeValue = null;
+            if (result && result.getText()) {
+              const text = result.getText();
+              const now = Date.now();
 
-              // METHOD 1: Native Hardware BarcodeDetector (Android Ultra Fast)
-              if (nativeDetector) {
-                try {
-                  const detectedBarcodes = await nativeDetector.detect(video);
-                  if (detectedBarcodes.length > 0 && detectedBarcodes[0].rawValue) {
-                    barcodeValue = detectedBarcodes[0].rawValue;
-                  }
-                } catch(e) {}
+              // Prevent spam-scan barcode yang sama dalam kurun 1.5 detik
+              if (text === lastScannedCode && (now - lastScannedTime) < 1500) {
+                return;
               }
 
-              // METHOD 2: ZXing Optimized Direct Frame Processing (iOS Safari / Fallback)
-              if (!barcodeValue && isScanning) {
-                try {
-                  canvas.width = video.videoWidth || 640;
-                  canvas.height = video.videoHeight || 480;
-                  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                  
-                  const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                  const luminanceSource = new ZXing.RGBLuminanceSource(imgData.data, canvas.width, canvas.height);
-                  const binaryBitmap = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(luminanceSource));
-                  
-                  const result = zxingReader.decodeBitmap(binaryBitmap);
-                  if (result && result.getText()) {
-                    barcodeValue = result.getText();
-                  }
-                } catch(e) {}
-              }
+              lastScannedCode = text;
+              lastScannedTime = now;
 
-              // JIKA BARCODE TERDETEKSI
-              if (barcodeValue) {
-                isProcessingScan = true;
-                playBeep();
-                processBarcodeData(barcodeValue);
-                
-                // Mencegah double scan berturut-turut dalam durasi singkat
-                setTimeout(() => { isProcessingScan = false; }, 1200);
-              }
+              playBeep();
+              processBarcodeData(text);
             }
-
-            if (isScanning) {
-              scanLoopFrame = requestAnimationFrame(processFrame);
-            }
-          };
-
-          scanLoopFrame = requestAnimationFrame(processFrame);
+          }).catch((err) => {
+            console.error("Decoder init error:", err);
+            Toast.fire({ icon: "error", title: "Gagal memulai kamera" });
+            if (isScanning) toggleScan();
+          });
 
         } catch (err) {
           console.error("Camera Error: ", err);
-          Toast.fire({ icon: "error", title: "Kamera gagal diakses!" });
+          Toast.fire({ icon: "error", title: "Kamera tidak dapat diakses" });
           toggleScan();
         }
       }
@@ -476,8 +409,9 @@
     }
 
     async function toggleTorch() {
-      if (!streamTrack) return;
+      if (!isScanning || !video.srcObject) return;
       try {
+        const streamTrack = video.srcObject.getVideoTracks()[0];
         const capabilities = streamTrack.getCapabilities();
         if (capabilities.torch) {
           isTorchOn = !isTorchOn;
@@ -518,7 +452,6 @@
         lebar = parseFloat(parts[2]) || 0;
         pcs = parseFloat(parts[3]) || 1;
         
-        // Perhitungan M2
         m2 = parseFloat(((panjang * lebar * pcs) / 1000000).toFixed(3));
         type = (parts.length > 4) ? 2 : 1;
       }
