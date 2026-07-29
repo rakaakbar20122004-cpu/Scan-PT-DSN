@@ -109,7 +109,7 @@
 
 <div class="topbar">
   <div class="topbar-title"><i class="fas fa-qrcode" style="margin-right:8px"></i>PT. Daya Sakti Niaga</div>
-  <span class="engine-badge" id="engineBadge">SCANNER</span>
+  <span class="engine-badge" id="engineBadge">TURBO SCAN</span>
 </div>
 
 <div class="pull-indicator" id="pullIndicator"><i class="fas fa-arrow-down"></i> Lepas untuk Refresh Kamera...</div>
@@ -223,76 +223,42 @@
 
 <script>
 // ══════════════════════════════════════════
-//  STORAGE
+//  STORAGE & STATE
 // ══════════════════════════════════════════
 const STORAGE_KEY = "SCMBarcodeMasterData";
 let allData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
 let scannedCodesSet = new Set(allData.map(i => i.kode));
 
-// ══════════════════════════════════════════
-//  SCANNER STATE
-// ══════════════════════════════════════════
 let isScanning    = false;
 let currentCam    = "environment";
-let lastErrorTime = 0;
+let lastScanTime  = 0;
 let isTorchOn     = false;
 let streamTrack   = null;
 let scanLoopFrame = null;
+let autoFocusInterval = null;
 let audioCtx      = null;
 
 const video = document.getElementById("videoElement");
 
 const Toast = Swal.mixin({
   toast:true, position:"top-end", showConfirmButton:false,
-  timer:2000, background:"rgba(15,23,42,0.95)", color:"#fff"
+  timer:1800, background:"rgba(15,23,42,0.95)", color:"#fff"
 });
 
-// ══════════════════════════════════════════
-//  DEVICE DETECTION — Hybrid Engine Logic
-// ══════════════════════════════════════════
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-const isAndroid = /Android/i.test(navigator.userAgent);
+// Detector Setup
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 const hasNativeScanner = "BarcodeDetector" in window;
-
 let nativeDetector = null;
-let zxingReader    = null;
+let zxingReader = null;
 
-// Badge labeling
-if (isIOS) {
-  document.getElementById("engineBadge").innerText = "IOS PRO";
-} else if (hasNativeScanner) {
-  document.getElementById("engineBadge").innerText = "HW ACCEL";
+if (hasNativeScanner) {
   try {
-    nativeDetector = new BarcodeDetector({
-      formats: ["code_128","code_39","code_93","ean_13","ean_8","upc_a","upc_e","itf","codabar","qr_code"]
-    });
-  } catch(e) {
-    nativeDetector = null;
-  }
-} else {
-  document.getElementById("engineBadge").innerText = isAndroid ? "ANDROID+" : "SW MODE";
-}
-
-// ── ZXing Hints ──────────────────────────────────────
-function getZXingHints() {
-  try {
-    return new Map([
-      [ZXing.DecodeHintType.TRY_HARDER, true],
-      [ZXing.DecodeHintType.POSSIBLE_FORMATS, [
-        ZXing.BarcodeFormat.CODE_128,
-        ZXing.BarcodeFormat.CODE_39,
-        ZXing.BarcodeFormat.ITF,
-        ZXing.BarcodeFormat.EAN_13,
-        ZXing.BarcodeFormat.UPC_A,
-        ZXing.BarcodeFormat.QR_CODE
-      ]],
-    ]);
-  } catch(e){ return undefined; }
+    nativeDetector = new BarcodeDetector({ formats: ["code_128", "code_39", "ean_13", "qr_code"] });
+  } catch(e) { nativeDetector = null; }
 }
 
 function initAudio() {
-  if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   if (audioCtx.state === "suspended") audioCtx.resume();
 }
 
@@ -302,12 +268,12 @@ function playBeep() {
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.type = "sine";
-    osc.frequency.setValueAtTime(1000, audioCtx.currentTime);
-    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+    osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
     osc.connect(gain);
     gain.connect(audioCtx.destination);
     osc.start();
-    osc.stop(audioCtx.currentTime + 0.15);
+    osc.stop(audioCtx.currentTime + 0.12);
   } catch(e){}
 }
 
@@ -327,15 +293,12 @@ window.addEventListener("touchmove", e => {
     if (dy > 80) pullIndicator.style.opacity = "1";
     if (dy > 160) {
       touchStartY = 0; pullIndicator.style.opacity = "0";
-      Swal.fire({title:"Menyegarkan Kamera...",timer:1000,background:"rgba(15,23,42,0.95)",color:"#fff",didOpen:()=>Swal.showLoading()}).then(()=>location.reload());
+      location.reload();
     }
   }
 }, {passive:true});
 window.addEventListener("touchend", () => pullIndicator.style.opacity = "0");
 
-// ══════════════════════════════════════════
-//  PAGE NAV
-// ══════════════════════════════════════════
 function switchPage(pageId, el) {
   if (pageId !== "view-scan" && isScanning) toggleScan();
   document.querySelectorAll(".view-page").forEach(p => p.classList.remove("active"));
@@ -347,7 +310,7 @@ function switchPage(pageId, el) {
 }
 
 // ══════════════════════════════════════════
-//  TOGGLE SCAN — Hybrid Engine Optimasi Android & iOS
+//  TURBO TOGGLE SCAN
 // ══════════════════════════════════════════
 async function toggleScan() {
   const btn         = document.getElementById("btnAction");
@@ -356,23 +319,22 @@ async function toggleScan() {
   const targetBox   = document.getElementById("targetBox");
 
   if (isScanning) {
-    // ── STOP ──────────────────────────────
     isScanning = false;
     isTorchOn  = false;
     document.getElementById("btnTorch").classList.remove("active");
     if (scanLoopFrame) cancelAnimationFrame(scanLoopFrame);
+    if (autoFocusInterval) clearInterval(autoFocusInterval);
     if (streamTrack) { streamTrack.stop(); streamTrack = null; }
     if (video.srcObject) { video.srcObject.getTracks().forEach(t => t.stop()); video.srcObject = null; }
     if (zxingReader)  { zxingReader.reset(); zxingReader = null; }
+    
     video.style.display       = "none";
     laser.style.display       = "none";
     targetBox.style.display   = "none";
     placeholder.style.display = "flex";
     btn.innerHTML = '<i class="fas fa-play" style="margin-right:6px;"></i>SCAN';
     btn.classList.remove("stop");
-
   } else {
-    // ── START ─────────────────────────────
     initAudio();
     try {
       video.style.display       = "block";
@@ -383,142 +345,112 @@ async function toggleScan() {
       btn.classList.add("stop");
       isScanning = true;
 
-      // ── Camera stream ──────────────────
-      let stream;
-      if (isIOS) {
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { ideal: currentCam }, width: { ideal: 1280 }, height: { ideal: 720 } }
-          });
-        } catch(e) {
-          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      // Kamera Resolusi Kilat (Optimum 1280x720)
+      const constraints = {
+        video: {
+          facingMode: { ideal: currentCam },
+          width: { ideal: 1280, max: 1920 },
+          height: { ideal: 720, max: 1080 },
+          frameRate: { ideal: 30, min: 15 }
         }
-      } else {
-        // Android: Resolusi seimbang (1280x720) agar fokus tajam & tidak berat di-decode
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-              facingMode: { ideal: currentCam },
-              width:  { ideal: 1280, min: 640 },
-              height: { ideal: 720, min: 480 },
-              frameRate: { ideal: 30 }
-            }
-          });
-        } catch(e) {
-          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-        }
-      }
+      };
 
-      video.setAttribute("autoplay","");
-      video.setAttribute("muted","");
-      video.setAttribute("playsinline","");
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       video.srcObject = stream;
       streamTrack = stream.getVideoTracks()[0];
 
-      // Continuous Focus untuk Android
-      if (!isIOS && streamTrack) {
-        try {
-          const cap = streamTrack.getCapabilities();
-          if (cap.focusMode && cap.focusMode.includes("continuous")) {
-            await streamTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
-          }
-        } catch(_) {}
+      // Auto-Focus Hardware Optimizer
+      if (streamTrack && streamTrack.getCapabilities) {
+        const cap = streamTrack.getCapabilities();
+        if (cap.focusMode) {
+          autoFocusInterval = setInterval(() => {
+            if (streamTrack && isScanning) {
+              streamTrack.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(()=>{});
+            }
+          }, 1500);
+        }
       }
 
-      await new Promise(resolve => { video.onloadedmetadata = () => resolve(); });
       await video.play();
 
-      // ══════════════════════════════════
-      //  ENGINE SELECTION
-      // ══════════════════════════════════
+      // Setup Canvas Buffer ringan
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
 
-      if (isIOS) {
-        // iOS ZXing
-        zxingReader = new ZXing.BrowserMultiFormatReader(getZXingHints());
-        zxingReader.timeBetweenDecodingAttempts = 10;
-        zxingReader.decodeFromStream(stream, "videoElement", (result, err) => {
-          if (result) {
-            processBarcodeDetected(result.getText(),
-              result.getBarcodeFormat ? result.getBarcodeFormat().toString() : "UNKNOWN");
+      // ZXing Inisialisasi Spesifik (Hanya format yang dibutuhkan untuk kecepatan maksimal)
+      const hints = new Map();
+      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+        ZXing.BarcodeFormat.CODE_128,
+        ZXing.BarcodeFormat.CODE_39,
+        ZXing.BarcodeFormat.EAN_13
+      ]);
+      zxingReader = new ZXing.BrowserMultiFormatReader(hints);
+
+      let lastDecodeAttempt = 0;
+
+      // Main Loop Scanner
+      const scanFrame = async () => {
+        if (!isScanning) return;
+
+        const now = performance.now();
+        // Limit eksekusi pemindaian setiap ~60ms untuk stabilitas & kecermatan tinggi
+        if (now - lastDecodeAttempt >= 60 && video.readyState === video.HAVE_ENOUGH_DATA) {
+          lastDecodeAttempt = now;
+
+          // 1. Opsi Hardware Acceleration (Android modern Chrome)
+          if (nativeDetector) {
+            try {
+              const barcodes = await nativeDetector.detect(video);
+              if (barcodes.length > 0) {
+                processBarcodeDetected(barcodes[0].rawValue);
+              }
+            } catch(e) {}
+          } 
+          // 2. Opsi ZXing High Performance Crop Canvas (iOS / Android Universal)
+          else {
+            try {
+              const vw = video.videoWidth;
+              const vh = video.videoHeight;
+              
+              // Crop hanya area merah tengah (ROI)
+              const cropWidth = Math.floor(vw * 0.85);
+              const cropHeight = Math.floor(vh * 0.40);
+              const cropX = Math.floor((vw - cropWidth) / 2);
+              const cropY = Math.floor((vh - cropHeight) / 2);
+
+              if (canvas.width !== cropWidth) {
+                canvas.width = cropWidth;
+                canvas.height = cropHeight;
+              }
+
+              ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+              const result = zxingReader.decodeFromCanvas(canvas);
+              if (result && result.getText()) {
+                processBarcodeDetected(result.getText());
+              }
+            } catch(e) {}
           }
-        });
+        }
 
-      } else if (nativeDetector) {
-        // Android HW Acceleration Native Engine
-        const nativeLoop = async () => {
-          if (!isScanning) return;
-          try {
-            const barcodes = await nativeDetector.detect(video);
-            if (barcodes.length > 0) {
-              processBarcodeDetected(barcodes[0].rawValue, barcodes[0].format.toUpperCase());
-            }
-          } catch(_) {}
-          if (isScanning) scanLoopFrame = requestAnimationFrame(nativeLoop);
-        };
-        scanLoopFrame = requestAnimationFrame(nativeLoop);
+        if (isScanning) {
+          scanLoopFrame = requestAnimationFrame(scanFrame);
+        }
+      };
 
-      } else {
-        // Android ZXing dengan Canvas ROI Cropping Optimasi
-        zxingReader = new ZXing.BrowserMultiFormatReader(getZXingHints());
-        zxingReader.timeBetweenDecodingAttempts = 0;
-
-        const roiCanvas = document.createElement("canvas");
-        const roiCtx    = roiCanvas.getContext("2d", { willReadFrequently: true });
-        let isDecoding  = false;
-
-        const androidZXingLoop = () => {
-          if (!isScanning) return;
-
-          if (video.readyState < 2 || video.videoWidth === 0 || isDecoding) {
-            scanLoopFrame = requestAnimationFrame(androidZXingLoop);
-            return;
-          }
-
-          isDecoding = true;
-
-          const vW = video.videoWidth;
-          const vH = video.videoHeight;
-
-          // Crop area targeting box (30% tinggi x 90% lebar)
-          const roiX = Math.floor(vW * 0.05);
-          const roiY = Math.floor(vH * 0.35);
-          const roiW = Math.floor(vW * 0.90);
-          const roiH = Math.floor(vH * 0.30);
-
-          if (roiCanvas.width !== roiW || roiCanvas.height !== roiH) {
-            roiCanvas.width  = roiW;
-            roiCanvas.height = roiH;
-          }
-
-          roiCtx.drawImage(video, roiX, roiY, roiW, roiH, 0, 0, roiW, roiH);
-
-          try {
-            const result = zxingReader.decodeFromCanvas(roiCanvas);
-            if (result) {
-              const fmt = result.getBarcodeFormat ? result.getBarcodeFormat().toString() : "UNKNOWN";
-              processBarcodeDetected(result.getText(), fmt);
-            }
-          } catch(e) {}
-
-          isDecoding = false;
-          if (isScanning) scanLoopFrame = requestAnimationFrame(androidZXingLoop);
-        };
-
-        scanLoopFrame = requestAnimationFrame(androidZXingLoop);
-      }
+      scanLoopFrame = requestAnimationFrame(scanFrame);
 
     } catch(err) {
-      Swal.fire("Kamera Gagal", "Izin belum diberikan / browser tidak support.", "error");
+      Swal.fire("Kamera Gagal", "Izin belum diberikan atau kamera sibuk.", "error");
       if (isScanning) toggleScan();
     }
   }
 }
 
 // ══════════════════════════════════════════
-//  TORCH & SWITCH CAMERA
+//  TORCH & CAMERA SWITCH
 // ══════════════════════════════════════════
 async function toggleTorch() {
-  if (!isScanning || !streamTrack) return Toast.fire({icon:"warning",title:"Mulai scan dulu!"});
+  if (!isScanning || !streamTrack) return Toast.fire({icon:"warning",title:"Nyalakan kamera dulu!"});
   try {
     const cap = streamTrack.getCapabilities();
     if (cap.torch) {
@@ -526,17 +458,16 @@ async function toggleTorch() {
       await streamTrack.applyConstraints({ advanced: [{ torch: isTorchOn }] });
       document.getElementById("btnTorch").classList.toggle("active", isTorchOn);
     } else { Toast.fire({icon:"error",title:"Senter tidak didukung"}); }
-  } catch(_) { Toast.fire({icon:"error",title:"Akses ditolak"}); }
+  } catch(_) { Toast.fire({icon:"error",title:"Akses senter gagal"}); }
 }
 
 function switchCamera() {
   currentCam = currentCam === "environment" ? "user" : "environment";
-  if (isScanning) { toggleScan(); setTimeout(toggleScan, 300); }
-  else Toast.fire({icon:"info",title:currentCam==="environment"?"Kamera Belakang":"Kamera Depan"});
+  if (isScanning) { toggleScan(); setTimeout(toggleScan, 200); }
 }
 
 // ══════════════════════════════════════════
-//  MASTER DB
+//  MASTER DATA & PARSERS
 // ══════════════════════════════════════════
 const DEFAULT_MASTER = {
   "1593103505404312800401050003": {jenisBarcode:"Barcode 2",panjang:305,lebar:14,potongan:24,persegi:"10.25",golongan:"10(3)"},
@@ -545,9 +476,6 @@ const DEFAULT_MASTER = {
 };
 let masterDB = { ...DEFAULT_MASTER, ...JSON.parse(localStorage.getItem("SCMMasterDB") || "{}") };
 
-// ══════════════════════════════════════════
-//  PARSERS
-// ══════════════════════════════════════════
 function parseBarcode1(raw) {
   if (raw.startsWith("86") && raw.length >= 24) {
     try {
@@ -579,17 +507,18 @@ function parseBarcode1(raw) {
   return null;
 }
 
-function processBarcodeDetected(code, format) {
+function processBarcodeDetected(code) {
   const now = Date.now();
-  if (now - lastErrorTime < 2000) return; // Cooldown 2 detik agar tidak spam
-  lastErrorTime = now;
+  if (now - lastScanTime < 1500) return; // Cooldown 1.5 detik antar pembacaan agar stabil
 
   const cleanCode = code.trim();
   if (!cleanCode) return;
 
+  lastScanTime = now;
+
   if (scannedCodesSet.has(cleanCode)) {
     playBeep();
-    Toast.fire({ icon: "warning", title: "Barcode Sudah Pernah Di-scan!" });
+    Toast.fire({ icon: "warning", title: "Barcode Sudah Ada!" });
     return;
   }
 
@@ -619,22 +548,22 @@ function processBarcodeDetected(code, format) {
   scannedCodesSet.add(cleanCode);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(allData));
 
-  Toast.fire({ icon: "success", title: `Berhasil Scan: ${cleanCode}` });
+  Toast.fire({ icon: "success", title: `Scanned: ${cleanCode}` });
 }
 
 function inputManual() {
   const input = document.getElementById("manualData");
   const val = input.value.trim();
   if (val) {
-    processBarcodeDetected(val, "MANUAL");
+    processBarcodeDetected(val);
     input.value = "";
   } else {
-    Toast.fire({ icon: "error", title: "Ketik kode barcode terlebih dahulu!" });
+    Toast.fire({ icon: "error", title: "Ketik kode barcode dulu!" });
   }
 }
 
 // ══════════════════════════════════════════
-//  RENDER TABLES
+//  RENDER TABEL & LAPORAN
 // ══════════════════════════════════════════
 function renderToday() {
   const todayStr = new Date().toISOString().split("T")[0];
@@ -725,12 +654,12 @@ function renderDatabase() {
 function deleteData(kode) {
   Swal.fire({
     title: "Hapus Data?",
-    text: `Kode ${kode} akan dihapus dari memori.`,
+    text: `Kode ${kode} akan dihapus.`,
     icon: "warning",
     showCancelButton: true,
     confirmButtonColor: "#ef4444",
     cancelButtonColor: "#3b82f6",
-    confirmButtonText: "Ya, Hapus"
+    confirmButtonText: "Hapus"
   }).then((res) => {
     if (res.isConfirmed) {
       allData = allData.filter(i => i.kode !== kode);
@@ -746,12 +675,12 @@ function deleteData(kode) {
 function hapusSemuaData() {
   Swal.fire({
     title: "Reset Total Memori?",
-    text: "Semua riwayat scan barcode akan dihapus permanen!",
+    text: "Semua data scan barcode akan dihapus permanen!",
     icon: "error",
     showCancelButton: true,
     confirmButtonColor: "#ef4444",
     cancelButtonColor: "#3b82f6",
-    confirmButtonText: "Ya, Reset Semua"
+    confirmButtonText: "Reset Semua"
   }).then((res) => {
     if (res.isConfirmed) {
       allData = [];
@@ -759,13 +688,13 @@ function hapusSemuaData() {
       localStorage.removeItem(STORAGE_KEY);
       renderToday();
       renderDatabase();
-      Toast.fire({ icon: "success", title: "Memori berhasil di-reset" });
+      Toast.fire({ icon: "success", title: "Memori berhasil dibersihkan" });
     }
   });
 }
 
 // ══════════════════════════════════════════
-//  EXPORTS
+//  EXPORTS (EXCEL & PDF)
 // ══════════════════════════════════════════
 function downloadExcelHarian() {
   const todayStr = new Date().toISOString().split("T")[0];
@@ -781,7 +710,6 @@ function exportToExcel(dataset, filename) {
   if (dataset.length === 0) return Toast.fire({ icon: "warning", title: "Tidak ada data untuk di-export" });
 
   const wb = XLSX.utils.book_new();
-
   const b1Data = dataset.filter(i => i.jenisBarcode === "Barcode 1").map((i, idx) => ({
     No: idx + 1, Kode: i.kode, Golongan: i.golongan, Panjang: i.panjang, Lebar: i.lebar, Potongan: i.potongan, "M2": i.persegi, Tanggal: i.tanggal, Jam: i.jam
   }));
