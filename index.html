@@ -577,6 +577,12 @@
         flex-direction: column;
         align-items: center;
         gap: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .btn-export-big:hover {
+        background: rgba(56, 189, 248, 0.1);
+        border-color: #38bdf8;
       }
       .icon-original {
         width: 60px;
@@ -601,28 +607,57 @@
         font-size: 0.85rem;
       }
 
+      /* ========================================================
+         KUSTOMISASI SWEETALERT AGAR SAMA PERSIS SEPERTI GAMBAR 
+         ======================================================== */
       div:where(.swal2-container) {
         z-index: 10000 !important;
       }
-      div:where(.swal2-container) div:where(.swal2-popup) {
-        background: #0f172a !important;
+      div:where(.swal2-container) div:where(.swal2-popup.swal-dark-custom) {
+        background: #0b1121 !important;
         color: #f8fafc !important;
         border: 1px solid #1e293b !important;
         border-radius: 20px !important;
         width: 90% !important;
         max-width: 400px !important;
-        padding: 20px !important;
-        max-height: 85vh !important;
-        overflow-y: auto !important;
+        padding: 24px 20px !important;
       }
-      .swal2-input,
-      .swal2-select {
-        background: rgba(0, 0, 0, 0.4) !important;
-        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+      .swal-dark-custom .swal2-title {
+        font-size: 1.5rem !important;
+        font-weight: 800 !important;
+        color: #ffffff !important;
+        margin-bottom: 10px !important;
+      }
+      .swal-dark-custom .swal2-input,
+      .swal-dark-custom .swal2-select {
+        background: #0f172a !important;
+        border: 1px solid #334155 !important;
         color: white !important;
-        border-radius: var(--radius-md) !important;
-        font-size: 0.9rem !important;
-        padding: 10px !important;
+        border-radius: 8px !important;
+        font-size: 0.95rem !important;
+        padding: 12px 16px !important;
+        box-shadow: none !important;
+        width: 100% !important;
+        margin: 0 0 12px 0 !important;
+        box-sizing: border-box !important;
+      }
+      .swal-dark-custom .swal2-input:focus,
+      .swal-dark-custom .swal2-select:focus {
+        border-color: #38bdf8 !important;
+      }
+      .swal-dark-custom .swal2-confirm {
+        background-color: #10b981 !important; /* Hijau */
+        color: white !important;
+        border-radius: 8px !important;
+        font-weight: 700 !important;
+        padding: 12px 24px !important;
+      }
+      .swal-dark-custom .swal2-cancel {
+        background-color: #475569 !important; /* Abu-abu */
+        color: white !important;
+        border-radius: 8px !important;
+        font-weight: 700 !important;
+        padding: 12px 24px !important;
       }
 
       .hdr-b1 i {
@@ -674,7 +709,7 @@
       <div id="view-scan" class="view-page active">
         <div class="card">
           <div class="card-header">
-            <i class="fas fa-camera-viewfinder"></i> LANCAR BOSKU!!!
+            <i class="fas fa-camera-viewfinder"></i> BISMILLAH BISA
           </div>
           <div class="scanner-wrapper">
             <div class="scanner-container" id="scannerBox">
@@ -729,7 +764,7 @@
             </div>
           </div>
           <div class="input-group" style="margin-top: 15px; margin-bottom: 0">
-            <label>Input Manual (Darurat)</label>
+            <label>Input Manual (Cepat)</label>
             <div class="manual-input-wrapper">
               <input
                 type="text"
@@ -934,8 +969,9 @@
       <div id="view-export" class="view-page">
         <div class="card">
           <div class="card-header">
-            <i class="fas fa-file-export"></i> Pusat Unduhan Laporan
+            <i class="fas fa-file-export"></i> Pusat Unduhan & Share Laporan
           </div>
+
           <label
             style="
               display: block;
@@ -949,23 +985,30 @@
             >Laporan Sesi Hari Ini</label
           >
           <div class="export-grid">
-            <button class="btn btn-export-big" onclick="downloadExcelHarian()">
+            <button
+              class="btn btn-export-big"
+              onclick="actionPrompt('excel', 'harian')"
+            >
               <img
                 src="https://lh3.googleusercontent.com/d/1jKqTVOd3Su5O4XZmLX1JtNcd7XC6BELz"
                 class="icon-original"
                 alt="Excel"
               />
-              <div>Excel Harian</div>
+              <div>Data Excel Harian</div>
             </button>
-            <button class="btn btn-export-big" onclick="downloadPDFHarian()">
+            <button
+              class="btn btn-export-big"
+              onclick="actionPrompt('pdf', 'harian')"
+            >
               <img
                 src="https://lh3.googleusercontent.com/d/1XuYRpVVy1ZYzxDRVboXtRQUBTxPe0yF6"
                 class="icon-original"
                 alt="PDF"
               />
-              <div>PDF Harian</div>
+              <div>Data PDF Harian</div>
             </button>
           </div>
+
           <label
             style="
               display: block;
@@ -973,29 +1016,37 @@
               font-weight: 800;
               color: #38bdf8;
               margin-bottom: 12px;
+              margin-top: 20px;
               text-transform: uppercase;
               letter-spacing: 1px;
             "
-            >Laporan Master</label
+            >Laporan Seluruh Database</label
           >
           <div class="export-grid">
-            <button class="btn btn-export-big" onclick="downloadExcelSemua()">
+            <button
+              class="btn btn-export-big"
+              onclick="actionPrompt('excel', 'semua')"
+            >
               <img
                 src="https://lh3.googleusercontent.com/d/1jKqTVOd3Su5O4XZmLX1JtNcd7XC6BELz"
                 class="icon-original"
                 alt="Excel"
               />
-              <div>Master Excel</div>
+              <div>Master Excel Database</div>
             </button>
-            <button class="btn btn-export-big" onclick="downloadPDFSemua()">
+            <button
+              class="btn btn-export-big"
+              onclick="actionPrompt('pdf', 'semua')"
+            >
               <img
                 src="https://lh3.googleusercontent.com/d/1XuYRpVVy1ZYzxDRVboXtRQUBTxPe0yF6"
                 class="icon-original"
                 alt="PDF"
               />
-              <div>Master PDF</div>
+              <div>Master PDF Database</div>
             </button>
           </div>
+
           <hr
             style="
               border: none;
@@ -1135,23 +1186,14 @@
         if (pageId === "view-database") renderDatabase();
       }
 
-      // NATIVE BARCODE DETECTOR (AKURASI TINGGI UNTUK BARCODE MELENGKUNG)
+      // ----------------------------------------------------
+      // PERBAIKAN 1: BUKA SEMUA FORMAT AGAR TIDAK ADA BARCODE YANG TERLEWAT
+      // ----------------------------------------------------
       let nativeDetector = null;
       if ("BarcodeDetector" in window) {
         try {
-          nativeDetector = new BarcodeDetector({
-            formats: [
-              "code_128",
-              "code_39",
-              "code_93",
-              "itf",
-              "ean_13",
-              "ean_8",
-              "upc_a",
-              "upc_e",
-              "codabar",
-            ],
-          });
+          // Dengan tidak mendefinisikan array formats, sistem akan mengizinkan semua jenis barcode yang ada di bumi.
+          nativeDetector = new BarcodeDetector();
         } catch (e) {
           nativeDetector = null;
         }
@@ -1171,6 +1213,7 @@
             ZXing.BarcodeFormat.EAN_8,
             ZXing.BarcodeFormat.UPC_A,
             ZXing.BarcodeFormat.UPC_E,
+            ZXing.BarcodeFormat.QR_CODE,
           ]);
           return hints;
         } catch (e) {
@@ -1185,57 +1228,92 @@
       }
 
       // ==========================================
-      // POPUP INPUT MANUAL PENUH (MENGGANTIKAN POPUP LAMA YANG HANYA MEMINTA SERIAL)
+      // FUNGSI AUTO PARSE & AUTO LEARN PINTAR BARCODE 2 & 3
+      // ==========================================
+      function autoParseDynamic(code) {
+        const prefix = code.substring(0, 8);
+        if (masterDB[prefix]) {
+          let data = { ...masterDB[prefix] };
+          data.kode = code;
+          return data;
+        }
+        if (code.startsWith("111")) {
+          if (code.includes("1916") || code.includes("28814"))
+            return {
+              jenisBarcode: "Barcode 3",
+              panjang: 280,
+              lebar: 15,
+              potongan: 24,
+              persegi: "10.08",
+              golongan: "FFP BX003187 (11)",
+            };
+          if (code.includes("8081"))
+            return {
+              jenisBarcode: "Barcode 3",
+              panjang: 300,
+              lebar: 13,
+              potongan: 24,
+              persegi: "9.36",
+              golongan: "FFP BX004129 (9)",
+            };
+        }
+        if (code.startsWith("159") || code.startsWith("10"))
+          return {
+            jenisBarcode: "Barcode 2",
+            panjang: 305,
+            lebar: 14,
+            potongan: 24,
+            persegi: "10.25",
+            golongan: "10 (014085)",
+          };
+        return null;
+      }
+
+      // ==========================================
+      // POPUP DARURAT (MUNCUL JIKA TIMEOUT 12 DETIK GAGAL MEMBACA BARCODE PUDAR)
       // ==========================================
       function showFullManualInputPrompt() {
         stopCamera();
         Swal.fire({
-          title: "Input Manual Terpadu",
-          html: `<div style="font-size:0.85rem; color:#38bdf8; margin-bottom:15px; text-align:left;">Kamera kesulitan membaca lekukan atau tinta pudar. Silakan masukkan keseluruhan data di bawah ini:</div>
-            <input id="t-kode" class="swal2-input" placeholder="Ketik Serial Barcode..." style="width: 90%; font-size:14px; margin-bottom:8px;">
-            <select id="t-jenis" class="swal2-select" style="width: 90%; font-size:14px; margin-bottom:8px;">
+          title: "Input Data Darurat",
+          html: `
+            <div style="font-size:0.85rem; color:#8b9bb4; margin-bottom:15px; text-align:left; line-height:1.4;">
+              Sistem kesulitan membaca lekukan atau tinta pudar.<br>
+              Silakan masukkan dimensinya di bawah ini.<br>Sistem akan membuat Serial Otomatis.
+            </div>
+            <select id="t-jenis" class="swal2-select">
               <option value="Barcode 3">Ini Barcode 3</option>
               <option value="Barcode 2">Ini Barcode 2</option>
               <option value="Barcode 1">Ini Barcode 1</option>
             </select>
-            <input id="t-gol" class="swal2-input" placeholder="Golongan (Cth: FFP / 10)" style="width: 90%; font-size:14px; margin-bottom:8px;">
-            <input id="t-p" type="number" class="swal2-input" placeholder="Panjang (Cth: 300)" style="width: 90%; font-size:14px; margin-bottom:8px;">
-            <input id="t-l" type="number" step="0.1" class="swal2-input" placeholder="Lebar (Cth: 13.5)" style="width: 90%; font-size:14px; margin-bottom:8px;">
-            <input id="t-pot" type="number" class="swal2-input" placeholder="Potongan (Cth: 24)" style="width: 90%; font-size:14px; margin-bottom:8px;">`,
+            <input id="t-gol" class="swal2-input" placeholder="Golongan (Cth: FFP / 10(3))">
+            <input id="t-p" type="number" class="swal2-input" placeholder="Panjang (Cth: 300)">
+            <input id="t-l" type="number" step="0.1" class="swal2-input" placeholder="Lebar (Cth: 13.5)">
+            <input id="t-pot" type="number" class="swal2-input" placeholder="Potongan (Cth: 24)">
+          `,
+          customClass: { popup: "swal-dark-custom" },
           showCancelButton: true,
-          confirmButtonText: '<i class="fas fa-save"></i> Simpan Data',
-          cancelButtonText: "Coba Scan Lagi",
-          confirmButtonColor: "var(--primary)",
+          confirmButtonText:
+            '<i class="fas fa-save" style="margin-right:5px;"></i> Simpan',
+          cancelButtonText: "Batal",
           preConfirm: () => {
-            const k = document
-              .getElementById("t-kode")
-              .value.trim()
-              .toUpperCase();
             const j = document.getElementById("t-jenis").value;
             const g = document.getElementById("t-gol").value.trim();
             const p = parseFloat(document.getElementById("t-p").value);
             const l = parseFloat(document.getElementById("t-l").value);
             const pot = parseInt(document.getElementById("t-pot").value);
 
-            if (!k) {
-              Swal.showValidationMessage("Serial Barcode wajib diisi!");
-              return false;
-            }
             if (!g || isNaN(p) || isNaN(l) || isNaN(pot)) {
               Swal.showValidationMessage(
                 "Semua dimensi wajib diisi dengan angka yang benar!",
               );
               return false;
             }
-            if (scannedCodesSet.has(k)) {
-              Swal.showValidationMessage(
-                "Barcode ini sudah di-scan sebelumnya!",
-              );
-              return false;
-            }
 
+            const randomCode =
+              "MNL-" + Math.floor(100000 + Math.random() * 900000);
             return {
-              kode: k,
+              kode: randomCode,
               jenisBarcode: j,
               golongan: g,
               panjang: p,
@@ -1247,10 +1325,79 @@
         }).then((res) => {
           if (res.isConfirmed) {
             const data = res.value;
-            masterDB[data.kode] = data; // Simpan ke Master Data agar besok diingat
-            localStorage.setItem("SCMMasterDB", JSON.stringify(masterDB));
             scannedCodesSet.add(data.kode);
             simpanData(data.kode, "MANUAL_TIMEOUT", data);
+          }
+          if (document.getElementById("view-scan").classList.contains("active"))
+            setTimeout(toggleScan, 300);
+        });
+      }
+
+      // ==========================================
+      // POPUP MASTER DATA BARU
+      // ==========================================
+      function promptNewMasterData(code, format) {
+        if (isScanning) stopCamera();
+        let predictedType =
+          code.startsWith("15") || code.startsWith("10")
+            ? "Barcode 2"
+            : code.startsWith("86")
+              ? "Barcode 1"
+              : "Barcode 3";
+
+        Swal.fire({
+          title: "Master Data Baru!",
+          html: `
+            <div style="font-size:0.85rem; color:#8b9bb4; margin-bottom:15px; text-align:left; line-height:1.4;">
+              Sistem mendeteksi Nomor Barcode yang belum dikenali:
+              <b style="color:#ffffff; font-size:1rem; letter-spacing: 0.5px; word-break: break-all; display:block; margin: 8px 0;">${code}</b>
+              Silakan masukkan dimensinya 1x saja.<br>Sistem akan mengingatnya selamanya.
+            </div>
+            <select id="m-jenis" class="swal2-select">
+              <option value="Barcode 3" ${predictedType === "Barcode 3" ? "selected" : ""}>Ini Barcode 3</option>
+              <option value="Barcode 2" ${predictedType === "Barcode 2" ? "selected" : ""}>Ini Barcode 2</option>
+              <option value="Barcode 1" ${predictedType === "Barcode 1" ? "selected" : ""}>Ini Barcode 1</option>
+            </select>
+            <input id="m-gol" class="swal2-input" placeholder="Golongan (Cth: FFP / 10(3))">
+            <input id="m-p" type="number" class="swal2-input" placeholder="Panjang (Cth: 300)">
+            <input id="m-l" type="number" step="0.1" class="swal2-input" placeholder="Lebar (Cth: 13.5)">
+            <input id="m-pot" type="number" class="swal2-input" placeholder="Potongan (Cth: 24)">
+          `,
+          customClass: { popup: "swal-dark-custom" },
+          showCancelButton: true,
+          confirmButtonText:
+            '<i class="fas fa-save" style="margin-right:5px;"></i> Simpan',
+          cancelButtonText: "Batal",
+          preConfirm: () => {
+            const j = document.getElementById("m-jenis").value;
+            const g = document.getElementById("m-gol").value.trim();
+            const p = parseFloat(document.getElementById("m-p").value);
+            const l = parseFloat(document.getElementById("m-l").value);
+            const pot = parseInt(document.getElementById("m-pot").value);
+
+            if (!g || isNaN(p) || isNaN(l) || isNaN(pot)) {
+              Swal.showValidationMessage(`Semua kolom wajib diisi!`);
+              return false;
+            }
+            return {
+              jenisBarcode: j,
+              golongan: g,
+              panjang: p,
+              lebar: l,
+              potongan: pot,
+              persegi: ((p * l * pot) / 10000).toFixed(2),
+            };
+          },
+        }).then((res) => {
+          if (res.isConfirmed) {
+            const data = res.value;
+            data.kode = code;
+            masterDB[code] = data;
+            masterDB[code.substring(0, 8)] = data;
+
+            localStorage.setItem("SCMMasterDB", JSON.stringify(masterDB));
+            scannedCodesSet.add(code);
+            simpanData(code, format, data);
           }
           if (document.getElementById("view-scan").classList.contains("active"))
             setTimeout(toggleScan, 300);
@@ -1291,17 +1438,13 @@
       }
 
       function processBarcodeDetected(rawCode, format) {
-        // PERBAIKAN REGEX: Menyimpan semua karakter yang biasa ada di barcode (Termasuk spasi jika salah baca)
         let code = rawCode
           .trim()
           .toUpperCase()
           .replace(/O/g, "0")
           .replace(/[^A-Z0-9-.\/]/g, "");
-
-        // SYARAT BARCODE: Berhasil terbaca minimal 6 karakter
         if (code.length < 6) return;
 
-        // RESET TIMER karena kamera berhasil membaca sesuatu
         scanStartTime = Date.now();
         scanTimeoutTriggered = false;
 
@@ -1320,7 +1463,6 @@
           simpanData(code, format, masterDB[code]);
           return;
         }
-
         let b1Data = parseBarcode1(code);
         if (b1Data) {
           scannedCodesSet.add(code);
@@ -1328,63 +1470,14 @@
           return;
         }
 
+        let b23Data = autoParseDynamic(code);
+        if (b23Data) {
+          scannedCodesSet.add(code);
+          simpanData(code, format, b23Data);
+          return;
+        }
+
         promptNewMasterData(code, format);
-      }
-
-      function promptNewMasterData(code, format) {
-        if (isScanning) stopCamera();
-        let predictedType =
-          code.startsWith("15") || code.startsWith("10")
-            ? "Barcode 2"
-            : code.startsWith("86")
-              ? "Barcode 1"
-              : "Barcode 3";
-
-        Swal.fire({
-          title: "Master Data Baru!",
-          html: `<div style="font-size:0.85rem; color:#38bdf8; margin-bottom:15px; text-align:left;">Sistem menemukan barcode tidak dikenali:<br><b style="color:white; font-size:1rem; letter-spacing: 1px; word-break: break-all;">${code}</b><br><br>Masukkan data sekali saja.</div>
-            <select id="m-jenis" class="swal2-select" style="width: 90%; font-size:14px; margin-bottom:8px;">
-              <option value="Barcode 3" ${predictedType === "Barcode 3" ? "selected" : ""}>Ini Barcode 3</option>
-              <option value="Barcode 2" ${predictedType === "Barcode 2" ? "selected" : ""}>Ini Barcode 2</option>
-              <option value="Barcode 1" ${predictedType === "Barcode 1" ? "selected" : ""}>Ini Barcode 1</option>
-            </select>
-            <input id="m-gol" class="swal2-input" placeholder="Golongan (Cth: FFP / 10)" style="width: 90%; font-size:14px; margin-bottom:8px;">
-            <input id="m-p" type="number" class="swal2-input" placeholder="Panjang (Cth: 300)" style="width: 90%; font-size:14px; margin-bottom:8px;">
-            <input id="m-l" type="number" step="0.1" class="swal2-input" placeholder="Lebar (Cth: 13.5)" style="width: 90%; font-size:14px; margin-bottom:8px;">
-            <input id="m-pot" type="number" class="swal2-input" placeholder="Potongan (Cth: 24)" style="width: 90%; font-size:14px; margin-bottom:8px;">`,
-          showCancelButton: true,
-          confirmButtonText: '<i class="fas fa-save"></i> Simpan',
-          cancelButtonText: "Batal",
-          confirmButtonColor: "var(--primary)",
-          preConfirm: () => {
-            const j = document.getElementById("m-jenis").value,
-              g = document.getElementById("m-gol").value.trim(),
-              p = parseFloat(document.getElementById("m-p").value),
-              l = parseFloat(document.getElementById("m-l").value),
-              pot = parseInt(document.getElementById("m-pot").value);
-            if (!g || isNaN(p) || isNaN(l) || isNaN(pot)) {
-              Swal.showValidationMessage(`Semua kolom wajib diisi!`);
-              return false;
-            }
-            return {
-              jenisBarcode: j,
-              golongan: g,
-              panjang: p,
-              lebar: l,
-              potongan: pot,
-              persegi: ((p * l * pot) / 10000).toFixed(2),
-            };
-          },
-        }).then((res) => {
-          if (res.isConfirmed) {
-            masterDB[code] = res.value;
-            localStorage.setItem("SCMMasterDB", JSON.stringify(masterDB));
-            scannedCodesSet.add(code);
-            simpanData(code, format, res.value);
-          }
-          if (document.getElementById("view-scan").classList.contains("active"))
-            setTimeout(toggleScan, 300);
-        });
       }
 
       function stopCamera() {
@@ -1413,27 +1506,23 @@
         btn.classList.remove("stop");
       }
 
+      // ----------------------------------------------------
+      // PERBAIKAN 2: SUNTIKAN 60-FPS & RESOLUSI OPTIMAL
+      // ----------------------------------------------------
       async function getOptimizedStream(requestHD, camType) {
         const mode =
           camType === "environment" ? { ideal: "environment" } : "user";
         let stream = null;
+
         if (requestHD) {
-          try {
-            stream = await navigator.mediaDevices.getUserMedia({
-              video: {
-                facingMode: mode,
-                width: { ideal: 1920 },
-                height: { ideal: 1080 },
-              },
-            });
-            return stream;
-          } catch (e) {}
+          // Menyuntikkan FPS tinggi (60fps) agar tidak terjadi patah-patah saat kamera bergeser mencari fokus barcode melengkung
           try {
             stream = await navigator.mediaDevices.getUserMedia({
               video: {
                 facingMode: mode,
                 width: { ideal: 1280 },
                 height: { ideal: 720 },
+                frameRate: { ideal: 60, min: 30 },
               },
             });
             return stream;
@@ -1445,6 +1534,7 @@
                 facingMode: mode,
                 width: { ideal: 640 },
                 height: { ideal: 480 },
+                frameRate: { ideal: 60, min: 30 },
               },
             });
             return stream;
@@ -1475,7 +1565,6 @@
         btn.classList.add("stop");
         isScanning = true;
 
-        // Mulai Timer Pintar
         scanStartTime = Date.now();
         scanTimeoutTriggered = false;
 
@@ -1484,22 +1573,29 @@
           video.srcObject = stream;
           streamTrack = stream.getVideoTracks()[0];
 
-          // PENYEMPURNAAN FOKUS KAMERA (Zoom 2.0x + Continuous Focus)
+          // ----------------------------------------------------
+          // PERBAIKAN 3: SUNTIKAN FOKUS MAKRO & OPTICAL ZOOM
+          // ----------------------------------------------------
           try {
             const caps = streamTrack.getCapabilities();
             let advancedConstraints = {};
             let applyConstraints = false;
 
-            // Paksa Fokus Berkelanjutan
-            if (caps.focusMode && caps.focusMode.includes("continuous")) {
+            // Prioritas 1: Jika HP Punya Lensa Makro
+            if (caps.focusMode && caps.focusMode.includes("macro")) {
+              advancedConstraints.focusMode = "macro";
+              applyConstraints = true;
+            }
+            // Prioritas 2: Fokus Terus-Menerus
+            else if (caps.focusMode && caps.focusMode.includes("continuous")) {
               advancedConstraints.focusMode = "continuous";
               applyConstraints = true;
             }
-            // Zoom 2x (Optical Flattening) untuk mengurangi distorsi barcode yang melengkung
+
             if (caps.zoom) {
               advancedConstraints.zoom = Math.min(
                 caps.zoom.max,
-                Math.max(caps.zoom.min, 2.0),
+                Math.max(caps.zoom.min, 1.5),
               );
               applyConstraints = true;
             }
@@ -1515,51 +1611,54 @@
           });
           await video.play();
 
-          // LOOP DETEKSI
+          // ----------------------------------------------------
+          // PERBAIKAN 4: SCAN LOOP TANPA JEDA BLOKIR UI (ULTRA FAST)
+          // ----------------------------------------------------
+          let lastScanTime = 0;
+
           if (nativeDetector) {
-            const detectLoop = async () => {
+            const detectLoop = async (timestamp) => {
               if (!isScanning) return;
+              if (timestamp - lastScanTime >= 60) {
+                // 60ms interval (super agresif)
+                lastScanTime = timestamp;
 
-              // Cek Timer (Batas 8 detik tanpa hasil scan)
-              if (!scanTimeoutTriggered && Date.now() - scanStartTime > 8000) {
-                scanTimeoutTriggered = true;
-                showFullManualInputPrompt();
-                return;
-              }
-
-              try {
-                const barcodes = await nativeDetector.detect(video);
-                if (barcodes.length > 0)
-                  processBarcodeDetected(
-                    barcodes[0].rawValue,
-                    barcodes[0].format.toUpperCase(),
-                  );
-              } catch (e) {}
-              setTimeout(() => {
-                if (isScanning)
-                  scanLoopFrame = requestAnimationFrame(detectLoop);
-              }, 150);
-            };
-            scanLoopFrame = requestAnimationFrame(detectLoop);
-          } else {
-            zxingReader = new ZXing.BrowserMultiFormatReader(getZXingHints());
-            zxingReader.timeBetweenDecodingAttempts = 150;
-            zxingReader.decodeFromStream(
-              stream,
-              "videoElement",
-              (result, err) => {
-                if (!isScanning) return;
-
-                // Cek Timer (Batas 8 detik tanpa hasil scan)
                 if (
                   !scanTimeoutTriggered &&
-                  Date.now() - scanStartTime > 8000
+                  Date.now() - scanStartTime > 12000
                 ) {
                   scanTimeoutTriggered = true;
                   showFullManualInputPrompt();
                   return;
                 }
-
+                try {
+                  const barcodes = await nativeDetector.detect(video);
+                  if (barcodes.length > 0)
+                    processBarcodeDetected(
+                      barcodes[0].rawValue,
+                      barcodes[0].format.toUpperCase(),
+                    );
+                } catch (e) {}
+              }
+              scanLoopFrame = requestAnimationFrame(detectLoop);
+            };
+            scanLoopFrame = requestAnimationFrame(detectLoop);
+          } else {
+            zxingReader = new ZXing.BrowserMultiFormatReader(getZXingHints());
+            zxingReader.timeBetweenDecodingAttempts = isHD ? 200 : 100;
+            zxingReader.decodeFromStream(
+              stream,
+              "videoElement",
+              (result, err) => {
+                if (!isScanning) return;
+                if (
+                  !scanTimeoutTriggered &&
+                  Date.now() - scanStartTime > 12000
+                ) {
+                  scanTimeoutTriggered = true;
+                  showFullManualInputPrompt();
+                  return;
+                }
                 if (result)
                   processBarcodeDetected(
                     result.getText(),
@@ -1584,8 +1683,8 @@
         document.getElementById("resText").innerText = isHD ? "HD" : "SD";
         document.getElementById("btnRes").classList.toggle("active", !isHD);
         let msg = isHD
-          ? "Mode HD (Tajam - iPhone/High End)"
-          : "Mode SD (Cepat - Android Low End)";
+          ? "Mode HD Aktif (Ketajaman Tinggi)"
+          : "Mode SD Aktif (Performa Cepat)";
         Toast.fire({ icon: "info", title: msg });
         if (isScanning) {
           stopCamera();
@@ -1822,6 +1921,7 @@
           title: "Hapus Data?",
           text: "Data akan dihapus permanen.",
           icon: "warning",
+          customClass: { popup: "swal-dark-custom" },
           showCancelButton: true,
           confirmButtonColor: "var(--danger)",
           cancelButtonColor: "rgba(255, 255, 255, 0.15)",
@@ -1849,6 +1949,7 @@
           title: "Format Database?",
           text: "Seluruh data akan dihapus total!",
           icon: "warning",
+          customClass: { popup: "swal-dark-custom" },
           showCancelButton: true,
           confirmButtonColor: "var(--danger)",
           cancelButtonColor: "rgba(255, 255, 255, 0.15)",
@@ -1868,23 +1969,10 @@
         });
       }
 
-      function downloadExcelHarian() {
-        const hariIni = new Date(
-          new Date().getTime() - new Date().getTimezoneOffset() * 60000,
-        )
-          .toISOString()
-          .split("T")[0];
-        const data = allData.filter((i) => i.tanggal === hariIni);
-        if (data.length === 0)
-          return Swal.fire("Informasi", "Tidak ada data hari ini.", "info");
-        exportToExcel(data, "Harian_" + hariIni);
-      }
-      function downloadExcelSemua() {
-        if (allData.length === 0)
-          return Swal.fire("Informasi", "Database kosong.", "info");
-        exportToExcel(allData, "Master_Data");
-      }
-      function exportToExcel(dataArray, label) {
+      // ==========================================
+      // SISTEM SHARE WHATSAPP / EXPORT DATA
+      // ==========================================
+      function getExcelBlob(dataArray) {
         const wb = XLSX.utils.book_new();
         ["Barcode 1", "Barcode 2", "Barcode 3"].forEach((type) => {
           const typeData = dataArray.filter((i) => i.jenis === type);
@@ -1908,26 +1996,13 @@
             );
           }
         });
-        XLSX.writeFile(wb, `Laporan_DSN_${label}_${new Date().getTime()}.xlsx`);
+        const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+        return new Blob([wbout], {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        });
       }
 
-      function downloadPDFHarian() {
-        const hariIni = new Date(
-          new Date().getTime() - new Date().getTimezoneOffset() * 60000,
-        )
-          .toISOString()
-          .split("T")[0];
-        const data = allData.filter((i) => i.tanggal === hariIni);
-        if (data.length === 0)
-          return Swal.fire("Informasi", "Tidak ada data hari ini.", "info");
-        exportToPDF(data, "Harian_" + hariIni);
-      }
-      function downloadPDFSemua() {
-        if (allData.length === 0)
-          return Swal.fire("Informasi", "Database kosong.", "info");
-        exportToPDF(allData, "Master_Data");
-      }
-      function exportToPDF(dataArray, label) {
+      function getPDFBlob(dataArray, label) {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF("p", "pt", "a4");
         doc.setFontSize(14);
@@ -1969,8 +2044,116 @@
           styles: { fontSize: 8 },
           headStyles: { fillColor: [59, 130, 246] },
         });
-        doc.save(`Laporan_DSN_${label}_${new Date().getTime()}.pdf`);
+        return doc.output("blob");
       }
+
+      async function executeExportAction(format, period, action) {
+        const hariIni = new Date(
+          new Date().getTime() - new Date().getTimezoneOffset() * 60000,
+        )
+          .toISOString()
+          .split("T")[0];
+        let dataArray =
+          period === "Harian"
+            ? allData.filter((i) => i.tanggal === hariIni)
+            : allData;
+
+        if (dataArray.length === 0)
+          return Swal.fire({
+            title: "Info",
+            text: "Database kosong/tidak ada data untuk diekspor.",
+            icon: "info",
+            customClass: { popup: "swal-dark-custom" },
+          });
+
+        const timestamp = new Date().getTime();
+        let blob, filename;
+
+        if (format === "excel") {
+          blob = getExcelBlob(dataArray);
+          filename = `Laporan_DSN_${period}_${timestamp}.xlsx`;
+        } else {
+          blob = getPDFBlob(dataArray, period);
+          filename = `Laporan_DSN_${period}_${timestamp}.pdf`;
+        }
+
+        if (action === "download") {
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = filename;
+          a.click();
+          window.URL.revokeObjectURL(url);
+          Toast.fire({ icon: "success", title: "Berhasil Diunduh!" });
+        } else if (action === "share") {
+          const file = new File([blob], filename, { type: blob.type });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+              await navigator.share({
+                title: `Laporan DSN ${period}`,
+                files: [file],
+              });
+              Toast.fire({ icon: "success", title: "Membuka Menu Share..." });
+            } catch (e) {
+              console.log("Share dibatalkan pengguna");
+            }
+          } else {
+            Swal.fire({
+              title: "Gagal Share Direct",
+              text: "Browser Anda tidak mendukung share file ke WhatsApp. File otomatis diunduh, kirim manual dari galeri.",
+              icon: "warning",
+              customClass: { popup: "swal-dark-custom" },
+            });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            a.click();
+            window.URL.revokeObjectURL(url);
+          }
+        }
+      }
+
+      // MENU PROMPT UNDUH ATAU SHARE
+      function actionPrompt(format, periodType) {
+        const period =
+          periodType === "harian" ? "Harian" : "Seluruh Master Database";
+        const displayFormat =
+          format === "excel" ? "Excel (.xlsx)" : "PDF (.pdf)";
+
+        Swal.fire({
+          title: `Laporan ${displayFormat}`,
+          html: `<div style="font-size:0.9rem; color:#cbd5e1; margin-bottom:15px;">Pilih aksi untuk laporan ${period}:</div>`,
+          showDenyButton: true,
+          showCancelButton: true,
+          confirmButtonText: '<i class="fas fa-download"></i> Unduh ke HP',
+          denyButtonText: '<i class="fab fa-whatsapp"></i> Share File',
+          cancelButtonText: "Batal",
+          confirmButtonColor: "#3b82f6",
+          denyButtonColor: "#10b981",
+          cancelButtonColor: "transparent",
+          customClass: { popup: "swal-dark-custom" },
+        }).then((result) => {
+          if (result.isConfirmed)
+            executeExportAction(
+              format,
+              periodType === "harian" ? "Harian" : "Semua",
+              "download",
+            );
+          else if (result.isDenied)
+            executeExportAction(
+              format,
+              periodType === "harian" ? "Harian" : "Semua",
+              "share",
+            );
+        });
+      }
+
+      // Jembatan Fungsi onClick HTML ke Fungsi Baru
+      window.downloadExcelHarian = () => actionPrompt("excel", "harian");
+      window.downloadPDFHarian = () => actionPrompt("pdf", "harian");
+      window.downloadExcelSemua = () => actionPrompt("excel", "semua");
+      window.downloadPDFSemua = () => actionPrompt("pdf", "semua");
     </script>
   </body>
 </html>
